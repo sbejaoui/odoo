@@ -506,15 +506,6 @@
       <field name="parent_id" ref="account_financial_report_abr_119"/>
     </record>
 
-    <record model="account.financial.report" id="account_financial_report_abr_162">
-      <field name="name">12. Profit de l'exercice</field>
-      <field name="sequence">800</field>
-      <field name="sign" eval="1"/>
-      <field name="display_detail">no_detail</field>
-      <field name="type">accounts</field>
-      <field name="parent_id" ref="account_financial_report_abr_119"/>
-    </record>
-
     <record model="account.financial.report" id="account_financial_report_abr_140">
       <field name="name">B. PRODUITS</field>
       <field name="sequence">737</field>
@@ -632,17 +623,8 @@
       <field name="parent_id" ref="account_financial_report_abr_140"/>
     </record>
 
-    <record model="account.financial.report" id="account_financial_report_abr_163">
-      <field name="name">12. Perte de l'exercice</field>
-      <field name="sequence">800</field>
-      <field name="sign" eval="-1"/>
-      <field name="display_detail">no_detail</field>
-      <field name="type">accounts</field>
-      <field name="parent_id" ref="account_financial_report_abr_140"/>
-    </record>
-
     <record model="account.financial.report" id="account_financial_report_abr_161">
-      <field name="name">RESULTAT DE L'EXERCICE A TRANSFERER AU 142</field>
+      <field name="name">RESULTAT DE L'EXERCICE</field>
       <field name="sequence">800</field>
       <field name="sign" eval="-1"/>
       <field name="display_detail">no_detail</field>
