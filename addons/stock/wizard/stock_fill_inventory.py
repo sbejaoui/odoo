@@ -131,12 +131,12 @@ class stock_fill_inventory(osv.osv_memory):
         for stock_move in res.values():
             for stock_move_details in stock_move.values():
                 stock_move_details.update({'inventory_id': context['active_ids'][0]})
-                domain = []
-                for field, value in stock_move_details.items():
-                    if field == 'product_qty' and fill_inventory.set_stock_zero:
-                         domain.append((field, 'in', [value,'0']))
-                         continue
-                    domain.append((field, '=', value))
+                domain = [(field, '=', stock_move_details[field])
+                           for field in ['location_id',
+                                         'product_id',
+                                         'prod_lot_id',
+                                         'inventory_id']
+                         ]
 
                 if fill_inventory.set_stock_zero:
                     stock_move_details.update({'product_qty': 0})
