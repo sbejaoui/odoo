@@ -314,6 +314,7 @@
                         <field name="indice"/>
                         <field name="date"/>
                         <field name="author_id"/>
+                        <field name="company_id" groups="base.group_multi_company" widget="selection"/>
                     </group>
                     <separator string="Description"/>
                     <field name="description"/>
@@ -356,6 +357,7 @@
                         <group>
                             <field name="date"/>
                             <field name="stock_available"/>
+                            <field name="company_id" groups="base.group_multi_company" widget="selection"/>
                         </group>
                     </group>
                     <notebook>
