@@ -130,21 +130,22 @@ class stock_fill_inventory(osv.osv_memory):
 
         for stock_move in res.values():
             for stock_move_details in stock_move.values():
-                stock_move_details.update({'inventory_id': context['active_ids'][0]})
-                domain = [(field, '=', stock_move_details[field])
-                           for field in ['location_id',
-                                         'product_id',
-                                         'prod_lot_id',
-                                         'inventory_id']
-                         ]
-
-                if fill_inventory.set_stock_zero:
-                    stock_move_details.update({'product_qty': 0})
-
-                line_ids = inventory_line_obj.search(cr, uid, domain, context=context)
-
-                if not line_ids:
-                    inventory_line_obj.create(cr, uid, stock_move_details, context=context)
+                if stock_move_details['product_qty'] > 0:
+                    stock_move_details.update({'inventory_id': context['active_ids'][0]})
+                    domain = [(field, '=', stock_move_details[field])
+                               for field in ['location_id',
+                                             'product_id',
+                                             'prod_lot_id',
+                                             'inventory_id']
+                             ]
+ 
+                    if fill_inventory.set_stock_zero:
+                        stock_move_details.update({'product_qty': 0})
+ 
+                    line_ids = inventory_line_obj.search(cr, uid, domain, context=context)
+ 
+                    if not line_ids:
+                        inventory_line_obj.create(cr, uid, stock_move_details, context=context)
 
         return {'type': 'ir.actions.act_window_close'}
 
