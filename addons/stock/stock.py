@@ -2994,6 +2994,44 @@ class stock_inventory_line(osv.osv):
         result = {'product_qty': amount, 'product_uom': uom, 'prod_lot_id': False}
         return {'value': result}
 
+    def _check_inventory_line(self, cr, uid, ids, context=None):
+        """Refuse to record duplicate inventory lines
+
+        Inventory lines with the sale Product, Location, Serial Number and date
+        are not taken into account correctly when computing the stock level
+        difference, so we'll simply refuse to record them rather than allow
+        users to introduce errors without even knowing it."""
+        for line in self.browse(cr, uid, ids, context=context):
+            inv_lines = self.search(
+                cr, uid, [
+                    ('product_id', '=', line.product_id.id),
+                    ('location_id', '=', line.location_id.id),
+                    ('prod_lot_id', '=', (
+                        line.prod_lot_id
+                        and line.prod_lot_id.id
+                        or False)),
+                    ('inventory_id.date', '=', line.inventory_id.date),
+                    ('id', 'not in', ids),
+                ], context=context)
+            if inv_lines:
+                raise osv.except_osv(
+                    _('Duplicate line detected'),
+                    _('You cannot enter more than a single inventory line for '
+                      'the same Product, Location, Serial Number and date : \n'
+                      ' - Product: %s\n'
+                      ' - Location: %s\n'
+                      ' - Serial Number: %s') % (
+                          line.product_id.default_code,
+                          line.location_id.name,
+                          (line.prod_lot_id and line.prod_lot_id.id
+                           or _('N/A'))))
+        return True
+
+    _constraints = [
+        (_check_inventory_line, 'Duplicate line detected',
+         ['location_id', 'product_id', 'prod_lot_id'])
+    ]
+
 stock_inventory_line()
 
 #----------------------------------------------------------
