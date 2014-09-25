@@ -135,7 +135,7 @@
         - quantity: 6
           prodlot_id: lot_monitor_0
         - quantity: 4
-          prodlot_id: lot_monitor_0
+          prodlot_id: lot_monitor_1
 -
   !python {model: stock.inventory.line.split }: |
     self.split_lot(cr, uid, [ref('split_inventory_lot0')], context=context)
