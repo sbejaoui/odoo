@@ -2425,11 +2425,15 @@ class stock_move(osv.osv):
                     account_moves += [(journal_id, self._create_account_move_line(cr, uid, move, acc_src, acc_valuation, reference_amount, reference_currency_id, context))]
 
             move_obj = self.pool.get('account.move')
+            period_obj = self.pool.get('account.period')
+            period = period_obj.find(cr, uid, dt=context.get('force_date', time.strftime(DEFAULT_SERVER_DATETIME_FORMAT)), context={'account_period_prefer_normal': True, 'company_id':move.company_id.id})[0]
             for j_id, move_lines in account_moves:
                 move_obj.create(cr, uid,
                         {
                          'journal_id': j_id,
                          'line_id': move_lines,
+                         'date': context.get('force_date', time.strftime(DEFAULT_SERVER_DATETIME_FORMAT)),
+                         'period_id': period,
                          'company_id': move.company_id.id,
                          'ref': move.picking_id and move.picking_id.name}, context=company_ctx)
 
@@ -2501,7 +2505,7 @@ class stock_move(osv.osv):
                     'product_id': move.product_id and move.product_id.id or False,
                     'quantity': move.product_qty,
                     'ref': move.picking_id and move.picking_id.name or False,
-                    'date': fields.date.context_today(self, cr, uid),
+                    'date': context.get('force_date', fields.date.context_today(self, cr, uid)),
                     'partner_id': partner_id,
                     'debit': reference_amount,
                     'account_id': dest_account_id,
@@ -2511,7 +2515,7 @@ class stock_move(osv.osv):
                     'product_id': move.product_id and move.product_id.id or False,
                     'quantity': move.product_qty,
                     'ref': move.picking_id and move.picking_id.name or False,
-                    'date': fields.date.context_today(self, cr, uid),
+                    'date': context.get('force_date', fields.date.context_today(self, cr, uid)),
                     'partner_id': partner_id,
                     'credit': reference_amount,
                     'account_id': src_account_id,
