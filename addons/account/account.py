@@ -490,7 +490,7 @@ class account_account(osv.osv):
         'exchange_rate': fields.related('currency_id', 'rate', type='float', string='Exchange Rate', digits=(12,6)),
         'shortcut': fields.char('Shortcut', size=12),
         'tax_ids': fields.many2many('account.tax', 'account_account_tax_default_rel',
-            'account_id', 'tax_id', 'Default Taxes'),
+            'account_id', 'tax_id', 'Default Taxes', ondelete='restrict'),
         'note': fields.text('Internal Notes'),
         'company_currency_id': fields.function(_get_company_currency, type='many2one', relation='res.currency', string='Company Currency'),
         'company_id': fields.many2one('res.company', 'Company', required=True),
@@ -1887,15 +1887,15 @@ class account_tax(osv.osv):
         #
         # Fields used for the Tax declaration
         #
-        'base_code_id': fields.many2one('account.tax.code', 'Account Base Code', help="Use this code for the tax declaration."),
-        'tax_code_id': fields.many2one('account.tax.code', 'Account Tax Code', help="Use this code for the tax declaration."),
+        'base_code_id': fields.many2one('account.tax.code', 'Account Base Code', help="Use this code for the tax declaration.", ondelete='restrict'),
+        'tax_code_id': fields.many2one('account.tax.code', 'Account Tax Code', help="Use this code for the tax declaration.", ondelete='restrict'),
         'base_sign': fields.float('Base Code Sign', help="Usually 1 or -1.", digits_compute=get_precision_tax()),
         'tax_sign': fields.float('Tax Code Sign', help="Usually 1 or -1.", digits_compute=get_precision_tax()),
 
         # Same fields for refund invoices
 
-        'ref_base_code_id': fields.many2one('account.tax.code', 'Refund Base Code', help="Use this code for the tax declaration."),
-        'ref_tax_code_id': fields.many2one('account.tax.code', 'Refund Tax Code', help="Use this code for the tax declaration."),
+        'ref_base_code_id': fields.many2one('account.tax.code', 'Refund Base Code', help="Use this code for the tax declaration.", ondelete='restrict'),
+        'ref_tax_code_id': fields.many2one('account.tax.code', 'Refund Tax Code', help="Use this code for the tax declaration.", ondelete='restrict'),
         'ref_base_sign': fields.float('Refund Base Code Sign', help="Usually 1 or -1.", digits_compute=get_precision_tax()),
         'ref_tax_sign': fields.float('Refund Tax Code Sign', help="Usually 1 or -1.", digits_compute=get_precision_tax()),
         'include_base_amount': fields.boolean('Included in base amount', help="Indicates if the amount of tax must be included in the base amount for the computation of the next taxes"),

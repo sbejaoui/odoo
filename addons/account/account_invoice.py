@@ -1277,7 +1277,8 @@ class account_invoice_line(models.Model):
         default=0.0)
     invoice_line_tax_id = fields.Many2many('account.tax',
         'account_invoice_line_tax', 'invoice_line_id', 'tax_id',
-        string='Taxes', domain=[('parent_id', '=', False)])
+        string='Taxes', domain=[('parent_id', '=', False)],
+        ondelete='restrict')
     account_analytic_id = fields.Many2one('account.analytic.account',
         string='Analytic Account')
     company_id = fields.Many2one('res.company', string='Company',
@@ -1492,11 +1493,13 @@ class account_invoice_tax(models.Model):
     sequence = fields.Integer(string='Sequence',
         help="Gives the sequence order when displaying a list of invoice tax.")
     base_code_id = fields.Many2one('account.tax.code', string='Base Code',
-        help="The account basis of the tax declaration.")
+        help="The account basis of the tax declaration.",
+        ondelete='restrict')
     base_amount = fields.Float(string='Base Code Amount', digits=dp.get_precision('Account'),
         default=0.0)
     tax_code_id = fields.Many2one('account.tax.code', string='Tax Code',
-        help="The tax basis of the tax declaration.")
+        help="The tax basis of the tax declaration.",
+        ondelete='restrict')
     tax_amount = fields.Float(string='Tax Code Amount', digits=dp.get_precision('Account'),
         default=0.0)
 
