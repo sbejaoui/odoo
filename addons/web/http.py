@@ -90,6 +90,8 @@ class WebRequest(object):
         self.params = dict(params)
         # OpenERP session setup
         self.session_id = self.params.pop("session_id", None) or uuid.uuid4().hex
+        if isinstance(self.session_id, list):
+            self.session_id = self.session_id[0]
         self.session = self.httpsession.get(self.session_id)
         if not self.session:
             self.session = session.OpenERPSession()
@@ -535,7 +537,10 @@ class Root(object):
         Call the object directly.
         """
         request = werkzeug.wrappers.Request(environ)
-        request.parameter_storage_class = werkzeug.datastructures.ImmutableDict
+        if environ.get('PATH_INFO', '') == '/web/binary/upload_multiple_file':
+            request.parameter_storage_class = werkzeug.datastructures.FileMultiDict
+        else:
+            request.parameter_storage_class = werkzeug.datastructures.ImmutableDict
         request.app = self
 
         handler = self.find_handler(*(request.path.split('/')[1:]))
