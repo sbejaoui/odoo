@@ -1,0 +1,272 @@
+-
+  I create a new tax code to assign base amount with VAT 21 operation
+-
+  !record {model: account.tax.code, id: account_tax_code_03}:
+    name: VAT 21 Operations
+    code: 03
+-
+  I create a new tax code to assign tax amount with VAT 21
+-
+  !record {model: account.tax.code, id: account_tax_code_54}:
+    name: Tax for VAT 21 Operations
+    code: 54
+-
+  I create a new tax code to assign base amount of refund with VAT 21 operation
+-
+  !record {model: account.tax.code, id: account_tax_code_49}:
+    name: Refund VAT 21 Operations
+    code: 49
+-
+  I create a new tax code to assign tax amount of refund with VAT 21 operation
+-
+  !record {model: account.tax.code, id: account_tax_code_64}:
+    name: Tax Refund VAT 21 Operations
+    code: 64
+-
+  I create a new 21% tax
+-
+  !record {model: account.tax, id: account_tax_21}:
+    name: VAT 21
+    company_id: base.main_company
+    description: VAT-OUT-21-L
+    type: percent
+    amount: 0.21
+    account_paid_id: account.iva
+    account_collected_id: account.iva
+    tax_code_id: account_tax_code_54
+    base_code_id: account_tax_code_03
+    tax_sign: 1.0
+    base_sign: 1.0
+    ref_base_code_id: account_tax_code_49
+    ref_tax_code_id: account_tax_code_64
+    ref_base_sign: 1.0
+    ref_tax_sign: 1.0
+-
+  I assign this tax on a product
+-
+  !record {model: product.product, id: product.product_product_5, view: False}:
+    taxes_id: [account_tax_21]
+-
+  I create a customer invoice
+-
+  !record {model: account.invoice, id: account_invoice_30, view: False }:
+    partner_id: base.res_partner_3
+    name: 'Test Invoice'
+    account_id: account.a_recv
+    invoice_line:
+      - product_id: product.product_product_5
+        name: 'Test Invoice'
+        quantity: 1.0
+        price_unit: 100
+        account_id: account.a_sale
+        invoice_line_tax_id:
+                  - account_tax_21
+    type: 'out_invoice'
+-
+  I check that customer invoice is in the "Draft" state
+-
+  !assert {model: account.invoice, id: account_invoice_30}:
+    - state == 'draft'
+-
+  I click on Validate button
+-
+  !workflow {model: account.invoice, action: invoice_open, ref: account_invoice_30}
+-
+  I check that customer invoice state is "Open"
+-
+  !assert {model: account.invoice, id: account_invoice_30}:
+    - state == 'open'
+-
+  I check that now there is a move attached to the invoice
+-
+  !python {model: account.invoice}: |
+    acc_id=self.browse(cr, uid, ref("account_invoice_30"))
+    assert acc_id.move_id, "Move not created for open invoice"
+-
+  I check Journals items of customer invoice
+-
+  !python {model: account.move.line}: |
+    acc_id=self.pool['account.invoice'].\
+        browse(cr, uid, ref("account_invoice_30"))
+    move = acc_id.move_id
+    vat21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                           ('tax_amount', '=', 21.0),
+                                           ('tax_code_id', '=',
+                                            ref('account_tax_code_54'))])
+    assert len(vat21_line_ids) == 1, "Invoice incorrect tax's move line"
+    base21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                            ('tax_amount', '=', 100.0),
+                                            ('tax_code_id', '=',
+                                             ref('account_tax_code_03'))])
+    assert len(vat21_line_ids) == 1, "Invoice incorrect base's move line"
+-
+  I create a PoS order the reproduce the same accounting's behavior as customer invocie
+-
+  !record {model: pos.order, id: pos_order_30}:
+    company_id: base.main_company
+    lines:
+      - name: OL/0001
+        product_id: product.product_product_5
+        price_unit: 100
+        discount: 0.0
+        qty: 1.0
+- 
+  I check that the total of the order is equal to 100 * 1.21 and the tax of the order is equal to 100 * 0.21
+- 
+  !python {model: pos.order}: |
+    order = self.browse(cr, uid, ref('pos_order_30'))
+    assert(abs(order.amount_total - (100 * 1.21)) < 0.01), "The order has a wrong amount, tax included"
+    assert(abs(order.amount_tax - (100 * 0.21)) < 0.01), "The order has a wrong tax amount"
+-
+  I click on the "Make Payment" wizard
+- 
+  !record {model: pos.make.payment, id: pos_make_payment_10, context: '{"active_id": ref("pos_order_30"), "active_ids": [ref("pos_order_30")]}' }:
+    amount: 121
+-
+  I click on the validate button to register the payment.
+-
+  !python {model: pos.make.payment}: |
+    self.check(cr, uid, [ref('pos_make_payment_10')], context={'active_id': ref('pos_order_30'), 'lang':'en_US', 'active_model': 'pos.order', 'tz': False, 'active_ids': [ref('pos_order_30')]} )
+- |
+  I check that the order is marked as paid
+-
+  !assert {model: pos.order, id: pos_order_30}:
+     - state == 'paid'
+- 
+  I generate the journal entries
+-
+  !python {model: pos.order}: |
+    self.create_account_move(cr, uid, [ref('pos_order_30')], {})
+-
+  I test that the generated journal entry is attached to the PoS order
+-
+  !assert {model: pos.order, id: pos_order_30}:
+     - bool(account_move)
+-
+  I check journals items of the Pos return. It should be the same as customer invoice
+-
+  !python {model: account.move.line}: |
+    pos_order = self.pool['pos.order'].browse(cr, uid, [ref('pos_order_30')])[0]
+    move = pos_order.account_move
+    vat21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                           ('tax_amount', '=', 21.0),
+                                           ('tax_code_id', '=',
+                                            ref('account_tax_code_54'))])
+    assert len(vat21_line_ids) == 1, "Pos Order Incorrect tax's move line"
+    base21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                            ('tax_amount', '=', 100.0),
+                                            ('tax_code_id', '=',
+                                             ref('account_tax_code_03'))])
+    assert len(vat21_line_ids) == 1, "Pos Order Incorrect base's move line"
+-
+  I create a customer refund
+-
+  !record {model: account.invoice, id: account_refund_invoice_30, view: False }:
+    partner_id: base.res_partner_3
+    name: 'Test Refund'
+    account_id: account.a_recv
+    invoice_line:
+      - product_id: product.product_product_5
+        name: 'Test Refund'
+        quantity: 1.0
+        price_unit: 100
+        account_id: account.a_sale
+        invoice_line_tax_id:
+                  - account_tax_21
+    type: 'out_refund'
+-
+  I check that customer refund is in the "Draft" state
+-
+  !assert {model: account.invoice, id: account_refund_invoice_30}:
+    - state == 'draft'
+-
+  I click on Validate button
+-
+  !workflow {model: account.invoice, action: invoice_open, ref: account_refund_invoice_30}
+-
+  I check that customer refund state is "Open"
+-
+  !assert {model: account.invoice, id: account_refund_invoice_30}:
+    - state == 'open'
+-
+  I check that now there is a move attached to the refund
+-
+  !python {model: account.invoice}: |
+    acc_id=self.browse(cr, uid, ref("account_refund_invoice_30"))
+    assert acc_id.move_id, "Move not created for open invoice"
+-
+  I check Journals items of customer refund
+-
+  !python {model: account.move.line}: |
+    acc_id=self.pool['account.invoice'].\
+        browse(cr, uid, ref("account_refund_invoice_30"))
+    move = acc_id.move_id
+    vat21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                           ('tax_amount', '=', 21.0),
+                                           ('tax_code_id', '=',
+                                            ref('account_tax_code_64'))])
+    assert len(vat21_line_ids) == 1, "Refund incorrect tax's move line"
+    base21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                            ('tax_amount', '=', 100.0),
+                                            ('tax_code_id', '=',
+                                             ref('account_tax_code_49'))])
+    assert len(vat21_line_ids) == 1, "Refund incorrect base's move line"
+-
+  I create a PoS order the reproduce the same accounting's behavior as customer refund
+-
+  !record {model: pos.order, id: pos_order_refund_30}:
+    company_id: base.main_company
+    lines:
+      - name: OL/0001
+        product_id: product.product_product_5
+        price_unit: 100
+        discount: 0.0
+        qty: -1.0
+- 
+  I check that the total of the order is equal to -1 * 100 * 1.21 and the tax of the order is equal to -1 * 100 * 0.21
+- 
+  !python {model: pos.order}: |
+    order = self.browse(cr, uid, ref('pos_order_refund_30'))
+    assert(abs(order.amount_total - (-1 * 100 * 1.21)) < 0.01), "The order has a wrong amount, tax included"
+    assert(abs(order.amount_tax - (-1 * 100 * 0.21)) < 0.01), "The order has a wrong tax amount"
+-
+  I click on the "Make Payment" wizard
+- 
+  !record {model: pos.make.payment, id: pos_make_payment_refund_30, context: '{"active_id": ref("pos_order_refund_30"), "active_ids": [ref("pos_order_refund_30")]}' }:
+    amount: -121
+-
+  I click on the validate button to register the payment.
+-
+  !python {model: pos.make.payment}: |
+    self.check(cr, uid, [ref('pos_make_payment_refund_30')], context={'active_id': ref('pos_order_refund_30'), 'lang':'en_US', 'active_model': 'pos.order', 'tz': False, 'active_ids': [ref('pos_order_refund_30')]} )
+- |
+  I check that the order is marked as paid
+-
+  !assert {model: pos.order, id: pos_order_refund_30}:
+     - state == 'paid'
+- 
+  I generate the journal entries
+-
+  !python {model: pos.order}: |
+    self.create_account_move(cr, uid, [ref('pos_order_refund_30')], {})
+-
+  I test that the generated journal entry is attached to the PoS order
+-
+  !assert {model: pos.order, id: pos_order_refund_30}:
+     - bool(account_move)
+-
+  I check journals items of the Pos return. It should be the same as customer refund
+-
+  !python {model: account.move.line}: |
+    pos_order = self.pool['pos.order'].browse(cr, uid, [ref('pos_order_refund_30')])[0]
+    move = pos_order.account_move
+    vat21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                           ('tax_amount', '=', 21.0),
+                                           ('tax_code_id', '=',
+                                            ref('account_tax_code_64'))])
+    assert len(vat21_line_ids) == 1, "Incorrect tax's move line"
+    base21_line_ids = self.search(cr, uid, [('move_id', '=', move.id),
+                                            ('tax_amount', '=', 100.0),
+                                            ('tax_code_id', '=',
+                                             ref('account_tax_code_49'))])
+    assert len(vat21_line_ids) == 1, "Incorrect base's move line"
