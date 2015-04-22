@@ -148,13 +148,13 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         gantt.detachAllEvents();
         // call dhtmlxgantt_tooltip.js code, because detachAllEvents() method detach tooltip events.
         call_tooltip();
-        var normalize_format = instance.web.normalize_format(_t.database.parameters.date_format);
+        //var normalize_format = instance.web.normalize_format(_t.database.parameters.date_format);
         gantt.templates.tooltip_text = function(start, end, task) {
             var duration = task.duration / 3;
             if(duration < 1) duration = 1;
             return "<b><u>" + task.text + "</u></b><br/><b>" + _t("Start date") + ":</b> " +
-                _t(moment(start).format(normalize_format)) + "<br/><b>" +
-                _t("End date") + ":</b> " + _t(moment(end).format(normalize_format)) +
+                _t(start) + "<br/><b>" +
+                _t("End date") + ":</b> " + _t(end) +
                 "<br/><b>" + _t("Duration") + ":</b> " + duration.toFixed(2) + " " + _t("Hours");
         };
         
@@ -367,20 +367,19 @@ instance.web_gantt.GanttView = instance.web.View.extend({
     },
     on_task_changed: function(task_obj) {
         var self = this;
-/* <<<<<<< HEAD
-        var itask = task_obj.TaskInfo.internal_task;
-        var start = task_obj.getEST();
-        var duration = task_obj.getDuration();
+// <<<<<<< HEAD
+        var start = task_obj.start_date;
+        var duration = task_obj.duration;
         var duration_in_business_hours = !!self.fields_view.arch.attrs.date_delay;
         if (!duration_in_business_hours){
             duration = (duration / 8 ) * 24;
         }
         var end = start.clone().addMilliseconds(duration * 60 * 60 * 1000);
-======= */
+/* ======= 
         var start = task_obj.start_date;
         var duration = (task_obj.duration / 8) * 24 / 3;
         var end = moment(start).add(duration, 'hours').toDate();
-//>>>>>>> eac2fe5... [IMP] Replace gantt chart library with dhtmlxgantt 3.1
+//>>>>>>> eac2fe5... [IMP] Replace gantt chart library with dhtmlxgantt 3.1 */
         var data = {};
         data[self.fields_view.arch.attrs.date_start] =
             instance.web.auto_date_to_str(start, self.fields[self.fields_view.arch.attrs.date_start].type);
