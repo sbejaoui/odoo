@@ -7,15 +7,21 @@ var _t = instance.web._t,
 var QWeb = instance.web.qweb;
 instance.web.views.add('gantt', 'instance.web_gantt.GanttView');
 
+gantt.widget = null;
 instance.web_gantt.GanttView = instance.web.View.extend({
     display_name: _lt('Gantt'),
     template: "GanttView",
     view_type: "gantt",
     init: function() {
         var self = this;
-        this._super.apply(this, arguments);
-        this.has_been_loaded = $.Deferred();
-        this.chart_id = _.uniqueId();
+        self._super.apply(this, arguments);
+        self.has_been_loaded = $.Deferred();
+        self.chart_id = _.uniqueId();
+        self.gantt_already_loaded = false;
+        self.gantt_config();
+    },
+    
+    gantt_config:function(){
         // Gantt configuration
         gantt.config.autosize = "y";
         gantt.config.scale_offset_minimal = false;
@@ -26,13 +32,74 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         gantt.config.grid_width = 200;
         gantt.config.row_height = 25;
         gantt.config.duration_unit = "hour";
+        gantt.config.work_time = true;
+        gantt.config.correct_work_time = true;
         gantt.config.columns = [{name:"text", label:_t("Gantt View"), tree:true, width:'*' }];
         gantt.templates.grid_folder = function() { return ""; };
         gantt.templates.grid_file = function() { return ""; };
         gantt.templates.grid_indent = function() {
             return "<div class='gantt_tree_indent' style='width:5px;'></div>";
         };
+        if (window.gantt_improvement_event_loaded === undefined) {
+            window.gantt_improvement_event_loaded = true;
+            gantt.attachEvent("onTaskClick", function(id, e){
+                self = gantt.widget;
+                if(gantt.hasChild(id)) return true;
+                var attr = self.fields_view.arch.attrs;
+                if(e.target.className == "gantt_task_content" || e.target.className == "gantt_task_drag task_left" || e.target.className == "gantt_task_drag task_right") {
+                    if(attr.action) {
+                        var actual_id = parseInt(id.split("gantt_task_").slice(1)[0]);
+                        if(attr.relative_field) {
+                            new instance.web.Model("ir.model.data").call("xmlid_lookup", [attr.action]).done(function(result) {
+                                var add_context = {};
+                                add_context["search_default_" + attr.relative_field] = actual_id;
+                                self.do_action(result[2], {'additional_context': add_context});
+                            });
+                        }
+                        return false;
+                    }
+                }
+                self.on_task_display(gantt.getTask(id));
+            });
+            gantt.attachEvent("onTaskDblClick", function(){ return false; });
+            gantt.attachEvent("onBeforeTaskDrag", function(id){
+                if(gantt.hasChild(id)) return false;
+                return true;
+            });
+            gantt.attachEvent("onTaskDrag", function(id){
+                // Refresh parent when children are resize
+                var start_date, stop_date;
+                var parent = gantt.getTask(gantt.getTask(id).parent);
+                _.each(gantt.getChildren(parent.id), function(task_id){
+                    var task_start_date = gantt.getTask(task_id).start_date;
+                    var task_stop_date = gantt.getTask(task_id).end_date;
+                    if(!start_date) start_date = task_start_date;
+                    if(!stop_date) stop_date = task_stop_date;
+                    if(start_date > task_start_date) start_date = task_start_date;
+                    if(stop_date < task_stop_date) stop_date = task_stop_date;
+                });
+                parent.start_date = start_date;
+                parent.end_date = stop_date;
+                gantt.updateTask(parent.id);
+            });
+            gantt.attachEvent("onAfterTaskDrag", function(id){
+                self.on_task_changed(gantt.getTask(id));
+            });
+        }
+        
+        gantt.templates.grid_row_class = gantt.templates.task_class=function(start, end, task){
+            var css = [];
+            if(gantt.hasChild(task.id)){
+                css.push("task-parent");
+            }
+            if (!task.$open && gantt.hasChild(task.id)) {
+                css.push("task-collapsed");
+            }
+
+            return css.join(" ");
+        };
     },
+    
     view_loading: function(r) {
         return this.load_gantt(r);
     },
@@ -54,11 +121,20 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                 self.has_been_loaded.resolve();
             });
     },
+    
+    reload_gantt :function() {
+        var self = this;
+        if (self.gantt_already_loaded === true) {
+            gantt.clearAll();
+        }
+        self.gantt_already_loaded = true;                   
+    },
     do_search: function (domains, contexts, group_bys) {
         var self = this;
         self.last_domains = domains;
         self.last_contexts = contexts;
         self.last_group_bys = group_bys;
+        self.reload_gantt();
         // select the group by
         var n_group_bys = [];
         if (this.fields_view.arch.attrs.default_group_by) {
@@ -83,6 +159,7 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         });
     },
     reload: function() {
+        var self = this;
         if (this.last_domains !== undefined)
             return this.do_search(this.last_domains, this.last_contexts, this.last_group_bys);
     },
@@ -98,7 +175,7 @@ instance.web_gantt.GanttView = instance.web.View.extend({
     },
     on_data_loaded_2: function(tasks, group_bys) {
         var self = this;
-        this.$el.find(".oe_gantt").html("");
+        this.$el.find(".oe_gantt");
 
         //prevent more that 1 group by
         if (group_bys.length > 0) {
@@ -144,9 +221,8 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         self.scale_zoom(scale);
         gantt.init(this.chart_id);
         gantt.clearAll();
+        gantt.widget = self;
         this.$el.find(".oe_gantt_button_create").unbind("click");
-        gantt.detachAllEvents();
-        // call dhtmlxgantt_tooltip.js code, because detachAllEvents() method detach tooltip events.
         call_tooltip();
         //var normalize_format = instance.web.normalize_format(_t.database.parameters.date_format);
         gantt.templates.tooltip_text = function(start, end, task) {
@@ -258,48 +334,6 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         }
         _.each(groups, function(group) { generate_task_info(group, 0); });
         gantt.parse({"data": tasks});
-        gantt.attachEvent("onTaskClick", function(id, e){
-            if(gantt.hasChild(id)) return true;
-            var attr = self.fields_view.arch.attrs;
-            if(e.target.className == "gantt_task_content" || e.target.className == "gantt_task_drag task_left" || e.target.className == "gantt_task_drag task_right") {
-                if(attr.action) {
-                    var actual_id = parseInt(id.split("gantt_task_").slice(1)[0]);
-                    if(attr.relative_field) {
-                        new instance.web.Model("ir.model.data").call("xmlid_lookup", [attr.action]).done(function(result) {
-                            var add_context = {};
-                            add_context["search_default_" + attr.relative_field] = actual_id;
-                            self.do_action(result[2], {'additional_context': add_context});
-                        });
-                    }
-                    return false;
-                }
-            }
-            self.on_task_display(gantt.getTask(id));
-        });
-        gantt.attachEvent("onTaskDblClick", function(){ return false; });
-        gantt.attachEvent("onBeforeTaskDrag", function(id){
-            if(gantt.hasChild(id)) return false;
-            return true;
-        });
-        gantt.attachEvent("onTaskDrag", function(id){
-            // Refresh parent when children are resize
-            var start_date, stop_date;
-            var parent = gantt.getTask(gantt.getTask(id).parent);
-            _.each(gantt.getChildren(parent.id), function(task_id){
-                var task_start_date = gantt.getTask(task_id).start_date;
-                var task_stop_date = gantt.getTask(task_id).end_date;
-                if(!start_date) start_date = task_start_date;
-                if(!stop_date) stop_date = task_stop_date;
-                if(start_date > task_start_date) start_date = task_start_date;
-                if(stop_date < task_stop_date) stop_date = task_stop_date;
-            });
-            parent.start_date = start_date;
-            parent.end_date = stop_date;
-            gantt.updateTask(parent.id);
-        });
-        gantt.attachEvent("onAfterTaskDrag", function(id){
-            self.on_task_changed(gantt.getTask(id));
-        });
         if (this.is_action_enabled('create')) {
             this.$el.find(".oe_gantt_button_create").click(this.on_task_create);
         }
@@ -307,28 +341,62 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             self.scale_zoom(self.$el.find(e.currentTarget).find("input").val());
             gantt.parse({"data": tasks});
         });
+        gantt.addTaskLayer(function show_hidden(task) {
+            if (!task.$open && gantt.hasChild(task.id)) {
+                var sub_height = gantt.config.row_height - 5,
+                    el = document.createElement('div'),
+                    sizes = gantt.getTaskPosition(task);
+
+                var sub_tasks = gantt.getChildren(task.id);
+
+                var child_el;
+
+                for (var i = 0; i < sub_tasks.length; i++){
+                    var child = gantt.getTask(sub_tasks[i]);
+                    var child_sizes = gantt.getTaskPosition(child);
+
+                    child_el = self.createBox({
+                        height: sub_height,
+                        top:sizes.top,
+                        left:child_sizes.left,
+                        width: child_sizes.width
+                    }, "child_preview gantt_task_line");
+                    child_el.innerHTML =  child.text;
+                    el.appendChild(child_el);
+                }
+                return el;
+            }
+            return false;
+        });
     },
     scale_zoom: function(value) {
         gantt.config.step = 1;
         gantt.config.min_column_width = 50;
         gantt.config.scale_height = 50;
-        gantt.templates.scale_cell_class = function(date) {};
-        gantt.templates.task_cell_class = function(item, date) {
-            if(date.getDay() == 0 || date.getDay() == 6) return "weekend_task";
+        gantt.templates.scale_cell_class = function(date){
+            if(date.getDay()==0||date.getDay()==6){
+                return "weekend";
+            }
         };
+        gantt.templates.task_cell_class = function(item,date){
+            if(date.getDay()==0||date.getDay()==6){
+                return "weekend"
+            }
+        };
+
         gantt.templates.date_scale = null;
         switch (value) {
             case "day":
-                gantt.templates.scale_cell_class = function(date) {
-                    if(date.getDay() == 0 || date.getDay() == 6) return "weekend_scale";
+                gantt.templates.task_cell_class = function(item,date){
+                    if(!gantt.isWorkTime(date)){
+                        return "weekend"
+                    }
                 };
                 gantt.config.scale_unit = "day";
                 gantt.config.date_scale = "%d %M";
                 gantt.config.subscales = [
-                    {unit:"hour", step:1, date:"%H:00", css:function(date) {
-                        if(date.getDay() == 0 || date.getDay() == 6) return "weekend_scale";
-                    } }
-		];
+                    {unit:"hour", step:1, date:"%H:00"}
+                ];
                 gantt.config.scale_height = 27;
                 break;
             case "week":
@@ -340,18 +408,14 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                 gantt.config.scale_unit = "week";
                 gantt.templates.date_scale = weekScaleTemplate;
                 gantt.config.subscales = [
-                    {unit:"day", step:1, date:"%d, %D", css:function(date) {
-                        if(date.getDay() == 0 || date.getDay() == 6) return "weekend_scale";
-                    } }
+                    {unit:"day", step:1, date:"%d, %D"}
                 ];
                 break;
             case "month":
                 gantt.config.scale_unit = "month";
                 gantt.config.date_scale = "%F, %Y";
                 gantt.config.subscales = [
-                    {unit:"day", step:1, date:"%d", css:function(date) {
-                        if(date.getDay() == 0 || date.getDay() == 6) return "weekend_scale";
-                    } }
+                    {unit:"day", step:1, date:"%d"}
                 ];
                 gantt.config.min_column_width = 25;
                 break;
@@ -371,10 +435,9 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         var start = task_obj.start_date;
         var duration = task_obj.duration;
         var duration_in_business_hours = !!self.fields_view.arch.attrs.date_delay;
-        if (!duration_in_business_hours){
-            duration = (duration / 8 ) * 24;
-        }
-        var end = start.clone().addMilliseconds(duration * 60 * 60 * 1000);
+        var end = task_obj.end_date;
+        
+        
 /* ======= 
         var start = task_obj.start_date;
         var duration = (task_obj.duration / 8) * 24 / 3;
@@ -403,7 +466,7 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             null,
             {readonly: true, title: task.text}
         );
-        pop.on('closed', self, self.reload);
+        //pop.on('closed', self, self.reload);
         var form_controller = pop.view_form;
         form_controller.on("load_record", self, function() {
              var footer = pop.$el.closest(".modal").find(".modal-footer");
@@ -439,5 +502,20 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             }
         );
     },
+    createBox: function(sizes, class_name){
+        var box = document.createElement('div');
+        box.style.cssText = [
+            "height:" + sizes.height + "px",
+            "line-height:" + sizes.height + "px",
+            "width:" + sizes.width + "px",
+            "top:" + sizes.top + 'px',
+            "left:" + sizes.left + "px",
+            "position:absolute"
+        ].join(";");
+        box.className = class_name;
+        return box;
+    }
+
+    
 });
 };
