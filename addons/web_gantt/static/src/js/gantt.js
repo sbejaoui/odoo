@@ -173,10 +173,7 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         });
     },
     on_data_loaded_2: function(tasks, group_bys) {
-    	var today = new Date();
-        var date_to_str = gantt.date.date_to_str(gantt.config.task_date);
-     	gantt.addMarker({ start_date: today, css: "today", text: "Today",  title:date_to_str(today)});
-        var self = this;
+    	var self = this;
         this.$el.find(".oe_gantt");
 
         //prevent more that 1 group by
@@ -221,9 +218,10 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         this.$el.find("div.btn-group").button('reset');
         this.$el.find("input[value=" + scale + "]").prop("checked", true).parent().addClass("active");
         self.scale_zoom(scale);
+        gantt.widget = self;
         gantt.init(this.chart_id);
         gantt.clearAll();
-        gantt.widget = self;
+        self.init_markers();
         this.$el.find(".oe_gantt_button_create").unbind("click");
         call_tooltip();
         //var normalize_format = instance.web.normalize_format(_t.database.parameters.date_format);
@@ -370,6 +368,12 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             }
             return false;
         });
+    },
+
+    init_markers: function(){
+        var today = new Date();
+        var date_to_str = gantt.date.date_to_str(gantt.config.task_date);
+      	gantt.addMarker({ start_date: today, css: "today", text: "Today",  title:date_to_str(today)});
     },
     scale_zoom: function(value) {
         gantt.config.step = 1;
