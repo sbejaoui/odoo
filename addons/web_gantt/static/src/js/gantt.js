@@ -32,8 +32,8 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         gantt.config.grid_width = 200;
         gantt.config.row_height = 25;
         gantt.config.duration_unit = "hour";
-        gantt.config.work_time = true;
-        gantt.config.correct_work_time = true;
+        gantt.config.work_time = false;
+        gantt.config.correct_work_time = false;
         gantt.config.columns = [{name:"text", label:_t("Gantt View"), tree:true, width:'*' }];
         gantt.templates.grid_folder = function() { return ""; };
         gantt.templates.grid_file = function() { return ""; };
@@ -66,7 +66,9 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                 if(gantt.hasChild(id)) return false;
                 return true;
             });
-            gantt.attachEvent("onTaskDrag", function(id){
+            gantt.attachEvent("onAfterTaskDrag", function(id){
+            	self = gantt.widget;
+                self.on_task_changed(gantt.getTask(id));
                 // Refresh parent when children are resize
                 var start_date, stop_date;
                 var parent = gantt.getTask(gantt.getTask(id).parent);
@@ -81,9 +83,6 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                 parent.start_date = start_date;
                 parent.end_date = stop_date;
                 gantt.updateTask(parent.id);
-            });
-            gantt.attachEvent("onAfterTaskDrag", function(id){
-                self.on_task_changed(gantt.getTask(id));
             });
         }
         
@@ -174,6 +173,9 @@ instance.web_gantt.GanttView = instance.web.View.extend({
         });
     },
     on_data_loaded_2: function(tasks, group_bys) {
+    	var today = new Date();
+        var date_to_str = gantt.date.date_to_str(gantt.config.task_date);
+     	gantt.addMarker({ start_date: today, css: "today", text: "Today",  title:date_to_str(today)});
         var self = this;
         this.$el.find(".oe_gantt");
 

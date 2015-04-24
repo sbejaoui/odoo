@@ -597,7 +597,7 @@
             <field name="model">project.task</field>
             <field eval="2" name="priority"/>
             <field name="arch" type="xml">
-                <gantt date_start="date_start" date_stop="date_end" progress="progress" string="Tasks" default_group_by="user_id" scale_zoom="day" colors="#ec7063:kanban_state=='blocked';#2ecb71:kanban_state=='done';#95a5a5:kanban_state=='normal';">
+                <gantt date_start="date_start" date_stop="date_end" progress="progress" string="Tasks" scale_zoom="day" colors="#ec7063:kanban_state=='blocked';#2ecb71:kanban_state=='done';#95a5a5:kanban_state=='normal';">
                 </gantt>
             </field>
         </record>
@@ -630,7 +630,7 @@
             <field name="res_model">project.task</field>
             <field name="view_mode">kanban,tree,form,calendar,gantt,graph</field>
             <field name="search_view_id" ref="view_task_search_form"/>
-            <field name="context">{'search_default_User': 1}</field>
+            <field name="context">{'search_default_project': 1}</field>
             <field name="help" type="html">
                 <p>
                     Odoo's project management allows you to manage the pipeline
