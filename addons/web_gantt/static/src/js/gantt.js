@@ -69,6 +69,7 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             gantt.attachEvent("onAfterTaskDrag", function(id){
             	self = gantt.widget;
                 self.on_task_changed(gantt.getTask(id));
+                return true;
                 // Refresh parent when children are resize
                 var start_date, stop_date;
                 var parent = gantt.getTask(gantt.getTask(id).parent);
@@ -246,6 +247,25 @@ instance.web_gantt.GanttView = instance.web.View.extend({
             var level = plevel || 0;
             project_id = project_id || _.uniqueId("gantt_project_");
             if (task.__is_group) {
+                var group_name = task.name ? instance.web.format_value(task.name, self.fields[group_bys[level]]) : "-";
+                var taskinfo = {}
+                if (level == 0) {
+                    $.extend(taskinfo, {
+                        'id': project_id,
+                        'text': group_name,
+                        'type': gantt.config.types.project,
+                        'parent': 0,
+                    });
+                } else {
+                  var id = _.uniqueId("gantt_project_task_");
+                  $.extend(taskinfo, {
+                      'id': id,
+                      'text': group_name,
+                      'parent': project_id,
+                      'type': gantt.config.types.subproject,
+                  });
+              }
+                tasks.push(taskinfo);
                 var task_infos = _.compact(_.map(task.tasks, function(sub_task) {
                     return generate_task_info(sub_task, level + 1, project_id);
                 }));
@@ -258,30 +278,23 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                     return memo === undefined || date > memo ? date : memo;
                 }, undefined);
                 var duration = (task_stop.getTime() - task_start.getTime()) / (1000 * 60 * 60);
-                var group_name = task.name ? instance.web.format_value(task.name, self.fields[group_bys[level]]) : "-";
-                if (level == 0) {
-                    gantt.addTask({
-                        'id': project_id,
-                        'text': group_name,
-                        'start_date': task_start,
-                        'duration': ((duration / 24) * 8) * 3 || 1,
-                        'progress': total_percent / total_task / 100,
+                total_task = total_percent = 0;
+                if (level == 0){
+                	$.extend(taskinfo, {
+                		'start_date': task_start,
+                        //'duration': ((duration / 24) * 8) * 3 || 1,
+                        //'progress': total_percent / total_task / 100,
                     });
-                    total_task = total_percent = 0;
-                    return {task_start: task_start, task_stop: task_stop};
-                } else {
-                  var id = _.uniqueId("gantt_project_task_");
-                  tasks.push({
-                      'id': id,
-                      'text': group_name,
-                      'start_date': task_start,
-                      'duration': duration || 1,
-                      'progress': percent / 100,
-                      'parent': project_id
-                  });
-                  total_task = total_percent = 0;
-                  return {task_start: task_start, task_stop: task_stop};
-              }
+                } else{
+                	$.extend(taskinfo, {
+                		'start_date': task_start,
+                        //'duration': duration || 1,
+                        //'progress': percent / 100,
+                        
+                	});
+                }
+                return {task_start: task_start, task_stop: task_stop};
+                
             } else {
                 var task_name = task.__name;
                 var duration_in_business_hours = false;
@@ -325,7 +338,8 @@ instance.web_gantt.GanttView = instance.web.View.extend({
                     'duration': (((duration / 24) * 8) * 3 || 1),
                     'progress': percent / 100,
                     'parent': project_id,
-                    'color': self.color
+                    'color': self.color,
+                    'type': gantt.config.types.task,
                 });
                 self.color = undefined;
                 return {task_start: task_start, task_stop: task_stop};
