@@ -139,6 +139,12 @@ class WorkflowItem(object):
         cr = self.session.cr
         signal_todo = []
 
+        # Hook to execute code in workflow.activity odoo model
+        activity_record = Record('workflow.activity', activity['id'])
+        env = Environment(self.session, activity_record)
+        env['workitem_id'] = self.workitem['id']
+        eval('_execute(workitem_id)', env, nocopy=True)
+
         if (self.workitem['state']=='active') and activity['signal_send']:
             # signal_send']:
             cr.execute("select i.id,w.osv,i.res_id from wkf_instance i left join wkf w on (i.wkf_id=w.id) where i.id IN (select inst_id from wkf_workitem where subflow_id=%s)", (self.workitem['inst_id'],))
