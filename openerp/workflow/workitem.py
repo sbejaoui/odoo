@@ -29,13 +29,14 @@ class Environment(dict):
     def __init__(self, session, record):
         self.cr = session.cr
         self.uid = session.uid
+        self.context = session.context
         self.model = record.model
         self.id = record.id
         self.ids = [record.id]
         self.obj = openerp.registry(self.cr.dbname)[self.model]
 
     def __getitem__(self, key):
-        records = self.obj.browse(self.cr, self.uid, self.ids)
+        records = self.obj.browse(self.cr, self.uid, self.ids, self.context)
         if hasattr(records, key):
             return getattr(records, key)
         else:
