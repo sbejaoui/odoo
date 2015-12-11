@@ -95,6 +95,9 @@ class wkf_activity(osv.osv):
         'split_mode': lambda *a: 'XOR',
     }
 
+    def _execute(self, cr, uid, ids, workitem_id, context=None):
+        return
+
     def unlink(self, cr, uid, ids, context=None):
         if context is None: context = {}
         if not context.get('_force_unlink') and self.pool.get('workflow.workitem').search(cr, uid, [('act_id', 'in', ids)]):
