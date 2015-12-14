@@ -47,7 +47,7 @@ from .api import Environment
 from .exceptions import AccessError, MissingError, ValidationError, UserError
 from .osv import fields
 from .osv.query import Query
-from .tools import frozendict, lazy_property, ormcache, Collector, LastOrderedSet
+from .tools import frozendict, lazy_property, ormcache, Collector, LastOrderedSet, OrderedSet
 from .tools.config import config
 from .tools.func import frame_codeinfo
 from .tools.misc import CountingStream, DEFAULT_SERVER_DATETIME_FORMAT, DEFAULT_SERVER_DATE_FORMAT, pickle
@@ -614,6 +614,7 @@ class BaseModel(object):
                 '_name': name,
                 '_register': False,
                 '_original_module': cls._module,
+                '_inherit_children': OrderedSet(),      # names of children models
                 '_fields': {},                          # populated in _setup_base()
                 '_defaults': {},                        # populated in _setup_base()
             })
@@ -629,6 +630,7 @@ class BaseModel(object):
                     bases.add(base)
             else:
                 bases.add(parent_class)
+                parent_class._inherit_children.add(name)
         ModelClass.__bases__ = bases = tuple(bases)
 
         # determine the attributes of the model's class
