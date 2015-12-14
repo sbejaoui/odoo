@@ -1143,7 +1143,7 @@ class Collector(Mapping):
         return len(self._map)
 
 class OrderedSet(OrderedDict):
-    """ A simple collection that remembers the elements insertion order. """
+    """ A set collection that remembers the elements first insertion order. """
     def __init__(self, seq=()):
         super(OrderedSet, self).__init__([(x, None) for x in seq])
 
@@ -1152,6 +1152,12 @@ class OrderedSet(OrderedDict):
 
     def discard(self, elem):
         self.pop(elem, None)
+
+class LastOrderedSet(OrderedSet):
+    """ A set collection that remembers the elements last insertion order. """
+    def add(self, elem):
+        OrderedSet.discard(self, elem)
+        OrderedSet.add(self, elem)
 
 @contextmanager
 def ignore(*exc):
