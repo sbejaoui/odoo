@@ -1622,6 +1622,7 @@ class ExportFormat(object):
         ids = ids or Model.search(domain, 0, False, False, context)
 
         field_names = map(operator.itemgetter('name'), fields)
+        context['import_compat'] = import_compat
         import_data = Model.export_data(ids, field_names, context).get('datas',[])
 
         if import_compat:

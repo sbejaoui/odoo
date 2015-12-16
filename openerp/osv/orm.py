@@ -1101,7 +1101,7 @@ class BaseModel(object):
             self._rec_name = 'name'
 
 
-    def __export_row(self, cr, uid, row, fields, context=None):
+    def __export_row(self, cr, uid, row, fields_, context=None):
         if context is None:
             context = {}
 
@@ -1149,10 +1149,10 @@ class BaseModel(object):
             return r
 
         lines = []
-        data = map(lambda x: '', range(len(fields)))
+        data = map(lambda x: '', range(len(fields_)))
         done = []
-        for fpos in range(len(fields)):
-            f = fields[fpos]
+        for fpos in range(len(fields_)):
+            f = fields_[fpos]
             if f:
                 r = row
                 i = 0
@@ -1174,6 +1174,12 @@ class BaseModel(object):
                             if r and type(sel_list) == type([]):
                                 r = [x[1] for x in sel_list if r==x[0]]
                                 r = r and r[0] or False
+                        if 'import_compat' in context and \
+                                not context['import_compat'] and \
+                                context.get('tz') and \
+                                cols and cols._type == 'datetime':
+                            # set datetime in user timezone
+                            r = fields.datetime._as_display_name(f[i], cr, uid, None, r, context=context)
                     if not r:
                         if f[i] in self._columns:
                             r = check_type(self._columns[f[i]]._type)
@@ -1184,12 +1190,12 @@ class BaseModel(object):
                     if isinstance(r, (browse_record_list, list)):
                         first = True
                         fields2 = map(lambda x: (x[:i+1]==f[:i+1] and x[i+1:]) \
-                                or [], fields)
+                                or [], fields_)
                         if fields2 in done:
                             if [x for x in fields2 if x]:
                                 break
                         done.append(fields2)
-                        if cols and cols._type=='many2many' and len(fields[fpos])>(i+1) and (fields[fpos][i+1]=='id'):
+                        if cols and cols._type=='many2many' and len(fields_[fpos])>(i+1) and (fields_[fpos][i+1]=='id'):
                             data[fpos] = ','.join([_get_xml_id(self, cr, uid, x) for x in r])
                             break
 
@@ -1197,7 +1203,7 @@ class BaseModel(object):
                             lines2 = row2._model.__export_row(cr, uid, row2, fields2,
                                     context)
                             if first:
-                                for fpos2 in range(len(fields)):
+                                for fpos2 in range(len(fields_)):
                                     if lines2 and lines2[0][fpos2]:
                                         data[fpos2] = lines2[0][fpos2]
                                 if not data[fpos]:
