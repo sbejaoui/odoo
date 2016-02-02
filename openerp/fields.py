@@ -310,7 +310,8 @@ class Field(object):
         'args': EMPTY_DICT,             # the parameters given to __init__()
         '_attrs': EMPTY_DICT,           # the field's non-slot attributes
         '_setup_done': None,            # the field's setup state: None, 'base' or 'full'
-
+        '_module': None,                # the field's module name
+        'setup_full_done': False,       # whether the field has been fully setup
         'automatic': False,             # whether the field is automatically created ("magic" field)
         'inherited': False,             # whether the field is inherited (_inherits)
         'origin': None,                 # the column from which the field was created
@@ -772,6 +773,7 @@ class Field(object):
         return self.column
 
     # properties used by to_column() to create a column instance
+    _column__module = property(attrgetter('_module'))
     _column_copy = property(attrgetter('copy'))
     _column_select = property(attrgetter('index'))
     _column_manual = property(attrgetter('manual'))
