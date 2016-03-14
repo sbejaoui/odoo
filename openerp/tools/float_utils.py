@@ -78,10 +78,14 @@ def float_round(value, precision_digits=None, precision_rounding=None, rounding_
     # When rounding the value up, we instead subtract the epsilon value
     # as the the approximation of the real value may be slightly *above* the
     # tie limit, this would result in incorrectly rounding up to the next number
+    # The math.ceil operation is applied on the absolute value in order to
+    # round "away from zero" and not "towards infinity", then the sign is
+    # restored.
 
     elif rounding_method == 'UP':
-        normalized_value -= cmp(normalized_value,0) * epsilon
-        rounded_value = math.ceil(normalized_value) # ceil to integer
+        sign = cmp(normalized_value, 0)
+        normalized_value -= sign*epsilon
+        rounded_value = math.ceil(abs(normalized_value))*sign # ceil to integer
 
     result = rounded_value * rounding_factor # de-normalize
     return result

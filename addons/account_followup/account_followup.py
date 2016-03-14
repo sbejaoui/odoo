@@ -293,6 +293,13 @@ class res_partner(osv.osv):
                                       model = 'res.partner', res_id = part.id, 
                                       partner_ids = [responsible_partner_id])
         return super(res_partner, self).write(cr, uid, ids, vals, context=context)
+    
+    def copy(self, cr, uid, record_id, default=None, context=None):
+        if default is None:
+            default = {}
+
+        default.update({'unreconciled_aml_ids': []})
+        return super(res_partner, self).copy(cr, uid, record_id, default, context) 
 
     def action_done(self, cr, uid, ids, context=None):
         return self.write(cr, uid, ids, {'payment_next_action_date': False, 'payment_next_action':'', 'payment_responsible_id': False}, context=context)
@@ -308,6 +315,7 @@ class res_partner(osv.osv):
                                                                    ('reconcile_id', '=', False),
                                                                    ('state', '!=', 'draft'),
                                                                    ('company_id', '=', company_id),
+                                                                   '|', ('date_maturity', '=', False), ('date_maturity', '<=', fields.date.context_today(self, cr, uid)),
                                                                   ], context=context):
             raise osv.except_osv(_('Error!'),_("The partner does not have any accounting entries to print in the overdue report for the current company."))
         self.message_post(cr, uid, [ids[0]], body=_('Printed overdue payments report'), context=context)

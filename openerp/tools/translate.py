@@ -56,7 +56,7 @@ _LOCALE2WIN32 = {
     'ar_SA': 'Arabic_Saudi Arabia',
     'eu_ES': 'Basque_Spain',
     'be_BY': 'Belarusian_Belarus',
-    'bs_BA': 'Serbian (Latin)',
+    'bs_BA': 'Bosnian_Bosnia and Herzegovina',
     'bg_BG': 'Bulgarian_Bulgaria',
     'ca_ES': 'Catalan_Spain',
     'hr_HR': 'Croatian_Croatia',
@@ -147,11 +147,11 @@ csv.register_dialect("UNIX", UNIX_LINE_TERMINATOR)
 #
 def translate(cr, name, source_type, lang, source=None):
     if source and name:
-        cr.execute('select value from ir_translation where lang=%s and type=%s and name=%s and src=%s', (lang, source_type, str(name), source))
+        cr.execute('select value from ir_translation where lang=%s and type=%s and name=%s and src=%s and md5(src)=md5(%s)', (lang, source_type, str(name), source, source))
     elif name:
         cr.execute('select value from ir_translation where lang=%s and type=%s and name=%s', (lang, source_type, str(name)))
     elif source:
-        cr.execute('select value from ir_translation where lang=%s and type=%s and src=%s', (lang, source_type, source))
+        cr.execute('select value from ir_translation where lang=%s and type=%s and src=%s and md5(src)=md5(%s)', (lang, source_type, source, source))
     res_trans = cr.fetchone()
     res = res_trans and res_trans[0] or False
     return res
@@ -329,6 +329,8 @@ class TinyPoFile(object):
                 elif line.startswith('#,') and (line[2:].strip() == 'fuzzy'):
                     fuzzy = True
                 line = self.lines.pop(0).strip()
+            if not self.lines:
+                raise StopIteration()
             while not line:
                 # allow empty lines between comments and msgid
                 line = self.lines.pop(0).strip()
@@ -345,6 +347,7 @@ class TinyPoFile(object):
             source = unquote(line[6:])
             line = self.lines.pop(0).strip()
             if not source and self.first:
+                self.first = False
                 # if the source is "" and it's the first msgid, it's the special
                 # msgstr with the informations about the traduction and the
                 # traductor; we skip it
@@ -373,8 +376,6 @@ class TinyPoFile(object):
                 for t, n, r in targets:
                     if t == trans_type == 'code': continue
                     self.extra_lines.append((t, n, r, source, trad, comments))
-
-        self.first = False
 
         if name is None:
             if not fuzzy:
@@ -873,6 +874,8 @@ def trans_generate(lang, modules, cr):
         display_path = "addons%s" % frelativepath
         module = get_module_from_path(fabsolutepath, mod_paths=mod_paths)
         if ('all' in modules or module in modules) and module in installed_modules:
+            if os.path.sep != '/':
+                display_path = display_path.replace(os.path.sep, '/')
             return module, fabsolutepath, frelativepath, display_path
         return None, None, None, None
 

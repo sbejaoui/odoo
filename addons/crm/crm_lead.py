@@ -349,6 +349,7 @@ class crm_lead(base_stage, format_address, osv.osv):
             partner = self.pool.get('res.partner').browse(cr, uid, partner_id, context=context)
             values = {
                 'partner_name' : partner.name,
+                'title': partner.title and partner.title.id or False,
                 'street' : partner.street,
                 'street2' : partner.street2,
                 'city' : partner.city,
@@ -359,6 +360,7 @@ class crm_lead(base_stage, format_address, osv.osv):
                 'mobile' : partner.mobile,
                 'fax' : partner.fax,
                 'zip': partner.zip,
+                'function': partner.function,
             }
         return {'value' : values}
 
@@ -626,6 +628,13 @@ class crm_lead(base_stage, format_address, osv.osv):
                 attachment.write(values)
         return True
 
+    def _merge_opportunity_phonecalls(self, cr, uid, opportunity_id, opportunities, context=None):
+        phonecall_obj = self.pool['crm.phonecall']
+        for opportunity in opportunities:
+            for phonecall_id in phonecall_obj.search(cr, uid, [('opportunity_id', '=', opportunity.id)], context=context):
+                phonecall_obj.write(cr, uid, phonecall_id, {'opportunity_id': opportunity_id}, context=context)
+        return True
+
     def merge_opportunity(self, cr, uid, ids, context=None):
         """
         Different cases of merge:
@@ -663,6 +672,7 @@ class crm_lead(base_stage, format_address, osv.osv):
         # Merge messages and attachements into the first opportunity
         self._merge_opportunity_history(cr, uid, highest.id, tail_opportunities, context=context)
         self._merge_opportunity_attachments(cr, uid, highest.id, tail_opportunities, context=context)
+        self._merge_opportunity_phonecalls(cr, uid, highest.id, tail_opportunities, context=context)
 
         # Merge notifications about loss of information
         opportunities = [highest]
@@ -920,6 +930,7 @@ class crm_lead(base_stage, format_address, osv.osv):
         opportunity = self.browse(cr, uid, ids[0], context)
         res = self.pool.get('ir.actions.act_window').for_xml_id(cr, uid, 'base_calendar', 'action_crm_meeting', context)
         res['context'] = {
+            'search_default_opportunity_id': opportunity.id,
             'default_opportunity_id': opportunity.id,
             'default_partner_id': opportunity.partner_id and opportunity.partner_id.id or False,
             'default_partner_ids' : opportunity.partner_id and [opportunity.partner_id.id] or False,
