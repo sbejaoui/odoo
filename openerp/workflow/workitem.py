@@ -29,13 +29,14 @@ class Environment(dict):
     def __init__(self, session, record):
         self.cr = session.cr
         self.uid = session.uid
+        self.context = session.context
         self.model = record.model
         self.id = record.id
         self.ids = [record.id]
         self.obj = openerp.registry(self.cr.dbname)[self.model]
 
     def __getitem__(self, key):
-        records = self.obj.browse(self.cr, self.uid, self.ids)
+        records = self.obj.browse(self.cr, self.uid, self.ids, self.context)
         if hasattr(records, key):
             return getattr(records, key)
         else:
@@ -119,6 +120,12 @@ class WorkflowItem(object):
         result = True
         cr = self.session.cr
         signal_todo = []
+
+        # Hook to execute code in workflow.activity odoo model
+        activity_record = Record('workflow.activity', activity['id'])
+        env = Environment(self.session, activity_record)
+        env['workitem_id'] = self.workitem['id']
+        eval('_execute(workitem_id)', env, nocopy=True)
 
         if (self.workitem['state']=='active') and activity['signal_send']:
             # signal_send']:
@@ -205,6 +212,8 @@ class WorkflowItem(object):
         test = False
         transitions = []
         alltrans = cr.dictfetchall()
+        activity_record = Record('workflow.workitem', self.workitem['id'])
+        env = Environment(self.session, activity_record)
 
         if split_mode in ('XOR', 'OR'):
             for transition in alltrans:
@@ -225,7 +234,7 @@ class WorkflowItem(object):
 
         if test and transitions:
             cr.executemany('insert into wkf_witm_trans (trans_id,inst_id) values (%s,%s)', transitions)
-            cr.execute('delete from wkf_workitem where id=%s', (self.workitem['id'],))
+            eval('unlink()', env, nocopy=True)
             for t in transitions:
                 self._join_test(t[0], t[1], stack)
             return True
