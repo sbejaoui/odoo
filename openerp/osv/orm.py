@@ -382,7 +382,8 @@ class browse_record(object):
                     return attr
             else:
                 error_msg = "Field '%s' does not exist in object '%s'" % (name, self)
-                self.__logger.warning(error_msg)
+                if name not in ['__members__', '__methods__']:
+                    self.__logger.warning(error_msg)
                 if self.__logger.isEnabledFor(logging.DEBUG):
                     self.__logger.debug(''.join(traceback.format_stack()))
                 raise KeyError(error_msg)
