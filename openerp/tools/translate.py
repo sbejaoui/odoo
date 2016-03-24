@@ -919,9 +919,28 @@ def trans_generate(lang, modules, cr):
 
     out = []
     # translate strings marked as to be translated
-    for module, source, name, id, type, comments in sorted(_to_translate):
-        trans = '' if not lang else trans_obj._get_source(cr, uid, name, type, lang, source)
-        out.append((module, type, name, id, source, encode(trans) or '', comments))
+    icp = registry['ir.config_parameter']
+    implied_terms = icp.get_param(cr, uid, 'translation_implied_terms', False)
+    implied_terms = implied_terms and eval(implied_terms) or []
+    for module, source, name, _id, _type, comments in sorted(_to_translate):
+        if implied_terms:
+            to_add = False
+            for term in implied_terms:
+                if term.lower() in source.lower():
+                    to_add = True
+                    break
+            if to_add:
+                trans = '' if not lang else trans_obj._get_source(
+                    cr, uid, name, _type, lang, source)
+                out.append(
+                    (module, _type, name, _id, source, encode(trans) or '',
+                     comments))
+        else:
+            trans = '' if not lang else trans_obj._get_source(
+                cr, uid, name, _type, lang, source)
+            out.append(
+                (module, _type, name, _id, source, encode(trans) or '',
+                 comments))
     return out
 
 def trans_load(cr, filename, lang, verbose=True, module_name=None, context=None):
