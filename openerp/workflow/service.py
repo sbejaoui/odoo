@@ -33,8 +33,9 @@ class WorkflowService(object):
         cls.CACHE[dbname] = {}
 
     @classmethod
-    def new(cls, cr, uid, model_name, record_id):
-        return cls(Session(cr, uid), Record(model_name, record_id))
+    def new(cls, cr, uid, model_name, record_id, context=None):
+        return cls(Session(cr, uid, context=context), Record(model_name,
+                                                             record_id))
 
     def __init__(self, session, record):
         assert isinstance(session, Session)
