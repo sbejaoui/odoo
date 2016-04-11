@@ -131,7 +131,7 @@ setup(
         'psycopg2 >= 2.2',
         'pychart',  # not on pypi, use: pip install http://download.gna.org/pychart/PyChart-1.39.tar.gz
         'pydot',
-        'python-dateutil < 2',
+        'python-dateutil >= 2.5.0 ', # https://github.com/dateutil/dateutil/issues/100
         'python-ldap',  # optional
         'python-openid',
         'pytz',
