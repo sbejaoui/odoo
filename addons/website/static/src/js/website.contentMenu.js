@@ -80,7 +80,7 @@
                 listType: 'ul',
                 handle: 'div',
                 items: 'li',
-                maxLevels: 2,
+                maxLevels: 5,
                 toleranceElement: '> div',
                 forcePlaceholderSize: true,
                 opacity: 0.6,
