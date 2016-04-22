@@ -369,7 +369,7 @@ class datetime(_column):
 
     @classmethod
     def _as_display_name(cls, field, cr, uid, obj, value, context=None):
-        value = datetime.context_timestamp(cr, uid, DT.datetime.strptime(value, tools.DEFAULT_SERVER_DATETIME_FORMAT), context=context)
+        value = datetime.context_timestamp(cr, uid, DT.datetime.strptime(value.split('.')[0], tools.DEFAULT_SERVER_DATETIME_FORMAT), context=context)
         return tools.ustr(value.strftime(tools.DEFAULT_SERVER_DATETIME_FORMAT))
 
 class binary(_column):

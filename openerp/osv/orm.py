@@ -1193,8 +1193,9 @@ class BaseModel(object):
                                 not context['import_compat'] and \
                                 context.get('tz') and \
                                 cols and cols._type == 'datetime':
-                            # set datetime in user timezone
-                            r = fields.datetime._as_display_name(f[i], cr, uid, None, r, context=context)
+                            if r:
+                                # set datetime in user timezone
+                                r = fields.datetime._as_display_name(f[i], cr, uid, None, r, context=context)
                     if not r:
                         if f[i] in self._columns:
                             r = check_type(self._columns[f[i]]._type)
