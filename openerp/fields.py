@@ -997,7 +997,7 @@ class Field(object):
         # ``records``, except fields currently being computed
         spec = []
         for field, path in self._triggers:
-            target = env[field.model_name]
+            target = env[field.model_name].sudo()
             computed = target.browse(env.computed[field])
             if path == 'id':
                 target = records - computed
