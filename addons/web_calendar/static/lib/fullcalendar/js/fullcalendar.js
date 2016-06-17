@@ -233,6 +233,9 @@ function Calendar(element, options, eventSources) {
 	var resizeUID = 0;
 	var ignoreWindowResize = 0;
 	var date = new Date();
+	if (t.options.force_date) {
+        date = new Date(t.options.force_date);
+    }
 	var events = [];
 	var _dragElement;
 	
@@ -1963,7 +1966,6 @@ function MonthView(element, calendar) {
 	
 	
 	function render(date, delta) {
-
 		if (delta) {
 			addMonths(date, delta);
 			date.setDate(1);
