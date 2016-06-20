@@ -166,6 +166,12 @@ class wkf_workitem(osv.osv):
         'inst_id': fields.many2one('workflow.instance', 'Instance', required=True, ondelete="cascade", select=True),
         'state': fields.char('Status', select=True),
     }
+
+    def execute_delete(self, cr, uid, ids, context=None):
+        if context is None:
+            context = {}
+        cr.execute('delete from wkf_workitem where id in %s', (tuple(ids),))
+
 wkf_workitem()
 
 class wkf_triggers(osv.osv):
