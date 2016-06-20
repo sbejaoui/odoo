@@ -230,8 +230,6 @@ class WorkflowItem(object):
         test = False
         transitions = []
         alltrans = cr.dictfetchall()
-        activity_record = Record('workflow.workitem', self.workitem['id'])
-        env = Environment(self.session, activity_record)
 
         if split_mode in ('XOR', 'OR'):
             for transition in alltrans:
@@ -252,7 +250,8 @@ class WorkflowItem(object):
 
         if test and transitions:
             cr.executemany('insert into wkf_witm_trans (trans_id,inst_id) values (%s,%s)', transitions)
-            eval('unlink()', env, nocopy=True)
+            registry = openerp.registry(self.session.cr.dbname)
+            registry['workflow.workitem'].execute_delete(self.session.cr, self.session.uid, [self.workitem['id']])
             for t in transitions:
                 self._join_test(t[0], t[1], stack)
             return True
