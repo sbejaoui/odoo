@@ -95,6 +95,9 @@ class wkf_activity(osv.osv):
         'split_mode': lambda *a: 'XOR',
     }
 
+    def _execute(self, cr, uid, ids, workitem_id, context=None):
+        return
+
     def unlink(self, cr, uid, ids, context=None):
         if context is None: context = {}
         if not context.get('_force_unlink') and self.pool.get('workflow.workitem').search(cr, uid, [('act_id', 'in', ids)]):
@@ -183,6 +186,12 @@ class wkf_workitem(osv.osv):
         'inst_id': fields.many2one('workflow.instance', 'Instance', required=True, ondelete="cascade", select=True),
         'state': fields.char('Status', select=True),
     }
+
+    def execute_delete(self, cr, uid, ids, context=None):
+        if context is None:
+            context = {}
+        cr.execute('delete from wkf_workitem where id in %s', (tuple(ids),))
+
 wkf_workitem()
 
 class wkf_triggers(osv.osv):
