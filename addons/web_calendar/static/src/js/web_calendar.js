@@ -250,8 +250,12 @@ openerp.web_calendar = function(instance) {
         get_fc_init_options: function () {
             //Documentation here : http://arshaw.com/fullcalendar/docs/
             var self = this;
+            var force_date = false;
+            if (this.dataset.context.force_date) {
+                force_date = self.dataset.context.force_date;
+            }
             return  $.extend({}, get_fc_defaultOptions(), {
-                
+                force_date: force_date,
                 defaultView: (this.mode == "month")?"month":
                     (this.mode == "week"?"agendaWeek":
                      (this.mode == "day"?"agendaDay":"month")),
