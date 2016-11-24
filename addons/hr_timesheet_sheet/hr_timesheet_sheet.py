@@ -342,6 +342,8 @@ class hr_timesheet_line(osv.osv):
             if sheet_ids:
             # [0] because only one sheet possible for an employee between 2 dates
                 res[ts_line.id] = sheet_obj.name_get(cursor, user, sheet_ids, context=context)[0]
+            elif ts_line.sheet_id:
+                res[ts_line.id] = ts_line.sheet_id.id
         return res
 
     def _get_hr_timesheet_sheet(self, cr, uid, ids, context=None):
