@@ -373,6 +373,26 @@ class Report(osv.Model):
     def _check_wkhtmltopdf(self):
         return wkhtmltopdf_state
 
+    @api.multi
+    def _postprocess_report(self, content, res_id, save_in_attachment):
+        if save_in_attachment.get(res_id):
+            attachment = {
+                'name': save_in_attachment.get(res_id),
+                'datas': base64.encodestring(content),
+                'datas_fname': save_in_attachment.get(res_id),
+                'res_model': save_in_attachment.get('model'),
+                'res_id': res_id,
+            }
+            try:
+                return self.env['ir.attachment'].create(attachment)
+            except AccessError:
+                _logger.info("Cannot save PDF report %r as attachment",
+                             attachment['name'])
+            else:
+                _logger.info('The PDF document %s is now saved in the database',
+                             attachment['name'])
+        return False
+
     def _run_wkhtmltopdf(self, cr, uid, headers, footers, bodies, landscape, paperformat, spec_paperformat_args=None, save_in_attachment=None, set_viewport_size=False, context=None):
         """Execute wkhtmltopdf as a subprocess in order to convert html given in input into a pdf
         document.
@@ -466,23 +486,9 @@ class Report(osv.Model):
                                       'Message: %s') % (str(process.returncode), err))
 
                 # Save the pdf in attachment if marked
-                if reporthtml[0] is not False and save_in_attachment.get(reporthtml[0]):
+                if reporthtml[0] is not False:
                     with open(pdfreport_path, 'rb') as pdfreport:
-                        attachment = {
-                            'name': save_in_attachment.get(reporthtml[0]),
-                            'datas': base64.encodestring(pdfreport.read()),
-                            'datas_fname': save_in_attachment.get(reporthtml[0]),
-                            'res_model': save_in_attachment.get('model'),
-                            'res_id': reporthtml[0],
-                        }
-                        try:
-                            self.pool['ir.attachment'].create(cr, uid, attachment, context)
-                        except AccessError:
-                            _logger.info("Cannot save PDF report %r as attachment", attachment['name'])
-                        else:
-                            _logger.info('The PDF document %s is now saved in the database',
-                                         attachment['name'])
-
+                        self._postprocess_report(cr, uid, pdfreport.read(), reporthtml[0], save_in_attachment, context=context)
                 pdfdocuments.append(pdfreport_path)
             except:
                 raise
