@@ -81,6 +81,9 @@ class WorkflowActivity(models.Model):
             raise UserError(_('Please make sure no workitems refer to an activity before deleting it!'))
         super(WorkflowActivity, self).unlink()
 
+    def _execute(self, cr, uid, ids, workitem_id, context=None):
+        return
+
 
 class WorkflowTransition(models.Model):
     _name = "workflow.transition"
