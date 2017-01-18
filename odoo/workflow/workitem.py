@@ -125,7 +125,7 @@ class WorkflowItem(object):
         activity_record = Record('workflow.activity', activity['id'])
         env = Environment(self.session, activity_record)
         env['workitem_id'] = self.workitem['id']
-        eval('_execute(workitem_id)', env, nocopy=True)
+        safe_eval('_execute(workitem_id)', env, nocopy=True)
 
         if (self.workitem['state']=='active') and activity['signal_send']:
             # signal_send']:
@@ -234,7 +234,7 @@ class WorkflowItem(object):
 
         if test and transitions:
             cr.executemany('insert into wkf_witm_trans (trans_id,inst_id) values (%s,%s)', transitions)
-            eval('execute_delete()', env, nocopy=True)
+            safe_eval('execute_delete()', env, nocopy=True)
             for t in transitions:
                 self._join_test(t[0], t[1], stack)
             return True

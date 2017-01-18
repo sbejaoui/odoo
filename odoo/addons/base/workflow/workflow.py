@@ -81,7 +81,7 @@ class WorkflowActivity(models.Model):
             raise UserError(_('Please make sure no workitems refer to an activity before deleting it!'))
         super(WorkflowActivity, self).unlink()
 
-    def _execute(self, cr, uid, ids, workitem_id, context=None):
+    def _execute(self, workitem_id):
         return
 
 
@@ -167,7 +167,7 @@ class WorkflowWorkitem(models.Model):
 
     @api.multi
     def execute_delete(self):
-        self.enc.cr.execute('delete from wkf_workitem where id in %s',
+        self.env.cr.execute('delete from wkf_workitem where id in %s',
                             (tuple(self.ids),))
 
 
