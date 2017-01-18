@@ -165,6 +165,11 @@ class WorkflowWorkitem(models.Model):
                               ondelete="cascade", required=True, index=True)
     state = fields.Char('Status', index=True)
 
+    @api.multi
+    def execute_delete(self):
+        self.enc.cr.execute('delete from wkf_workitem where id in %s',
+                            (tuple(self.ids),))
+
 
 class WorkflowTriggers(models.Model):
     _name = "workflow.triggers"

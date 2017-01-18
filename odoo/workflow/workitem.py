@@ -234,7 +234,7 @@ class WorkflowItem(object):
 
         if test and transitions:
             cr.executemany('insert into wkf_witm_trans (trans_id,inst_id) values (%s,%s)', transitions)
-            eval('unlink()', env, nocopy=True)
+            eval('execute_delete()', env, nocopy=True)
             for t in transitions:
                 self._join_test(t[0], t[1], stack)
             return True
