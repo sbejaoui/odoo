@@ -229,6 +229,7 @@ class lang(osv.osv):
             raise ValueError("format() must be given exactly one %char format specifier")
 
         formatted = percent % value
+        formatted = formatted.replace('-', u'\N{NON-BREAKING HYPHEN}')
 
         # floats and decimal ints need special action!
         if grouping:
