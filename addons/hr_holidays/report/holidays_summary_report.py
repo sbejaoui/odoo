@@ -58,7 +58,7 @@ def emp_create_xml(self, cr, uid, dept, holiday_type, row_id, empid, name, som, 
             current=som+datetime.timedelta(diff)
 
             for item in ids_date:
-                if current >= strToDate(item['date_from']) and current <= strToDate(item['date_to']):
+                if item.get('date_from') and item.get('date_to') and current >= strToDate(item['date_from']) and current <= strToDate(item['date_to']):
                     if item['state'] in holiday_type:
                         display[index]=item['holiday_status_id'][0]
                         count=count +1
