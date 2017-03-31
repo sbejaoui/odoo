@@ -157,7 +157,7 @@ DOMAIN_OPERATORS = (NOT_OPERATOR, OR_OPERATOR, AND_OPERATOR)
 # operators are also used. In this case its right operand has the form (subselect, params).
 TERM_OPERATORS = ('=', '!=', '<=', '<', '>', '>=', '=?', '=like', '=ilike',
                   'like', 'not like', 'ilike', 'not ilike', 'in', 'not in',
-                  'child_of', 'parent_of', 'has_company')
+                  'child_of', 'parent_of')
 
 # A subset of the above operators, with a 'negative' semantic. When the
 # expressions 'in NEGATIVE_TERM_OPERATORS' or 'not in NEGATIVE_TERM_OPERATORS' are used in the code
@@ -535,10 +535,7 @@ class ExtendedLeaf(object):
         return '<osv.ExtendedLeaf: %s on %s (ctx: %s)>' % (str(self.leaf), self.model._table, ','.join(self._get_context_debug()))
 
     def generate_alias(self):
-        links = [(context[1]._table if not isinstance(context[1], str) else
-                  context[1],
-                  context[4]) for context in
-                 self.join_context]
+        links = [(context[1]._table, context[4]) for context in self.join_context]
         alias, alias_statement = generate_table_alias(self._models[0]._table, links)
         return alias
 
@@ -565,11 +562,7 @@ class ExtendedLeaf(object):
         tables = set()
         links = []
         for context in self.join_context:
-            if isinstance(context[1], str):
-                table = context[1]
-            else:
-                table = context[1]._table
-            links.append((table, context[4]))
+            links.append((context[1]._table, context[4]))
             alias, alias_statement = generate_table_alias(self._models[0]._table, links)
             tables.add(alias_statement)
         return tables
@@ -991,38 +984,7 @@ class expression(object):
             elif column._type == 'many2many':
                 rel_table, rel_id1, rel_id2 = column._sql_names(model)
                 #FIXME
-                has_company = False
-                if model._name == 'product.template' and operator == \
-                        'has_company':
-                    ids2 = to_ids(right, comodel, context)
-                    dom = HIERARCHY_FUNCS['child_of']('id', ids2, comodel)
-                    len_ids2 = comodel.search_count(cr, uid, dom,
-                                                   context=context)
-                    if len_ids2 > 1:
-                        # manual query on multiple companies can return
-                        # duplicates which is not supported by orm, so use
-                        # the default behavior
-                        operator = 'child_of'
-                    else:
-                        leaf.add_join_context('product_template_res_company_rel',
-                                              'id',
-                                              'product_template_id',
-                                              'product_template_id')
-                        # push(leaf)
-                        leaf.add_join_context(comodel,
-                                              'res_company_id',
-                                              'id',
-                                              'res_company_id')
-
-                        leaf = create_substitution_leaf(leaf, dom[0],
-                                                        comodel)
-
-                        push(leaf)
-                        has_company = True
-
-                if has_company:
-                    pass
-                elif operator in HIERARCHY_FUNCS:
+                if operator in HIERARCHY_FUNCS:
                     def _rec_convert(ids):
                         if comodel == model:
                             return ids
