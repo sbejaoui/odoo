@@ -154,7 +154,8 @@ class website(orm.Model):
         # create so if needed
         if not sale_order_id and (force_create or code):
             # TODO cache partner_id session
-            partner = self.pool['res.users'].browse(cr, SUPERUSER_ID, uid, context=context).partner_id
+            partner = self.pool['res.users'].browse(cr, uid, uid,
+                                                    context=context).partner_id
 
             for w in self.browse(cr, uid, ids):
                 values = {
@@ -164,14 +165,15 @@ class website(orm.Model):
                     'section_id': self.pool.get('ir.model.data').get_object_reference(cr, uid, 'website', 'salesteam_website_sales')[1],
                 }
                 sale_order_id = sale_order_obj.create(cr, SUPERUSER_ID, values, context=context)
-                values = sale_order_obj.onchange_partner_id(cr, SUPERUSER_ID, [], partner.id, context=context)['value']
+                values = sale_order_obj.onchange_partner_id(cr, uid, [],
+                                                            partner.id, context=context)['value']
                 sale_order_obj.write(cr, SUPERUSER_ID, [sale_order_id], values, context=context)
                 request.session['sale_order_id'] = sale_order_id
                 sale_order = sale_order_obj.browse(cr, SUPERUSER_ID, sale_order_id, context=context)
 
         if sale_order_id:
             # TODO cache partner_id session
-            partner = self.pool['res.users'].browse(cr, SUPERUSER_ID, uid, context=context).partner_id
+            partner = self.pool['res.users'].browse(cr, uid, uid, context=context).partner_id
             # check for change of pricelist with a coupon
             if code and code != sale_order.pricelist_id.code:
                 pricelist_ids = self.pool['product.pricelist'].search(cr, SUPERUSER_ID, [('code', '=', code)], context=context)
