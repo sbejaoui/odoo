@@ -439,6 +439,22 @@ class Holidays(models.Model):
             else:
                 holiday.action_validate()
 
+    @api.model
+    def _prepare_create_by_category(self, holiday, employee):
+        values = {
+            'name': holiday.name,
+            'type': holiday.type,
+            'holiday_type': 'employee',
+            'holiday_status_id': holiday.holiday_status_id.id,
+            'date_from': holiday.date_from,
+            'date_to': holiday.date_to,
+            'notes': holiday.notes,
+            'number_of_days_temp': holiday.number_of_days_temp,
+            'parent_id': holiday.id,
+            'employee_id': employee.id
+        }
+        return values
+
     @api.multi
     def action_validate(self):
         if not self.env.user.has_group('hr_holidays.group_hr_holidays_user'):
@@ -479,18 +495,7 @@ class Holidays(models.Model):
             elif holiday.holiday_type == 'category':
                 leaves = self.env['hr.holidays']
                 for employee in holiday.category_id.employee_ids:
-                    values = {
-                        'name': holiday.name,
-                        'type': holiday.type,
-                        'holiday_type': 'employee',
-                        'holiday_status_id': holiday.holiday_status_id.id,
-                        'date_from': holiday.date_from,
-                        'date_to': holiday.date_to,
-                        'notes': holiday.notes,
-                        'number_of_days_temp': holiday.number_of_days_temp,
-                        'parent_id': holiday.id,
-                        'employee_id': employee.id
-                    }
+                    values = self._prepare_create_by_category(holiday, employee)
                     leaves += self.with_context(mail_notify_force_send=False).create(values)
                 # TODO is it necessary to interleave the calls?
                 leaves.action_approve()
