@@ -81,6 +81,9 @@ class WorkflowActivity(models.Model):
             raise UserError(_('Please make sure no workitems refer to an activity before deleting it!'))
         super(WorkflowActivity, self).unlink()
 
+    def _execute(self, workitem_id):
+        return
+
 
 class WorkflowTransition(models.Model):
     _name = "workflow.transition"
@@ -161,6 +164,11 @@ class WorkflowWorkitem(models.Model):
     inst_id = fields.Many2one('workflow.instance', string='Instance',
                               ondelete="cascade", required=True, index=True)
     state = fields.Char('Status', index=True)
+
+    @api.multi
+    def execute_delete(self):
+        self.env.cr.execute('delete from wkf_workitem where id in %s',
+                            (tuple(self.ids),))
 
 
 class WorkflowTriggers(models.Model):
