@@ -1058,6 +1058,7 @@ class BaseModel(object):
         current_module = ''
         noupdate = False
 
+        count = 0
         ids = []
         for id, xid, record, info in self._convert_records(cr, uid,
                 self._extract_records(cr, uid, fields, data,
@@ -1077,6 +1078,10 @@ class BaseModel(object):
                      current_module, record, mode=mode, xml_id=xid,
                      noupdate=noupdate, res_id=id, context=context))
                 cr.execute('RELEASE SAVEPOINT model_load_save')
+                count += 1
+                if count > 100:
+		    self.invalidate_cache(cr, uid, context=context)
+                    count = 0
             except psycopg2.Warning, e:
                 messages.append(dict(info, type='warning', message=str(e)))
                 cr.execute('ROLLBACK TO SAVEPOINT model_load_save')
