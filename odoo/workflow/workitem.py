@@ -120,6 +120,13 @@ class WorkflowItem(object):
         cr = self.session.cr
         signal_todo = []
 
+        # Hook to execute code in workflow.activity odoo model
+
+        activity_record = Record('workflow.activity', activity['id'])
+        env = Environment(self.session, activity_record)
+        env['workitem_id'] = self.workitem['id']
+        safe_eval('_execute(workitem_id)', env, nocopy=True)
+
         if (self.workitem['state']=='active') and activity['signal_send']:
             # signal_send']:
             cr.execute("select i.id,w.osv,i.res_id from wkf_instance i left join wkf w on (i.wkf_id=w.id) where i.id IN (select inst_id from wkf_workitem where subflow_id=%s)", (self.workitem['inst_id'],))
@@ -205,6 +212,8 @@ class WorkflowItem(object):
         test = False
         transitions = []
         alltrans = cr.dictfetchall()
+        activity_record = Record('workflow.workitem', self.workitem['id'])
+        env = Environment(self.session, activity_record)
 
         if split_mode in ('XOR', 'OR'):
             for transition in alltrans:
@@ -225,7 +234,7 @@ class WorkflowItem(object):
 
         if test and transitions:
             cr.executemany('insert into wkf_witm_trans (trans_id,inst_id) values (%s,%s)', transitions)
-            cr.execute('delete from wkf_workitem where id=%s', (self.workitem['id'],))
+            safe_eval('execute_delete()', env, nocopy=True)
             for t in transitions:
                 self._join_test(t[0], t[1], stack)
             return True
