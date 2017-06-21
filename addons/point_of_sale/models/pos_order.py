@@ -171,6 +171,34 @@ class PosOrder(models.Model):
             'user_id': self.env.uid,
         }
 
+    def _get_account_move_line_product_key(self, values):
+        return (
+            'product',
+            values['partner_id'],
+            (values['product_id'], tuple(values['tax_ids'][0][2]), values['name']),
+            values['analytic_account_id'], values['debit'] > 0)
+
+    @api.model
+    def _prepare_product_account_move_line(self, line, partner_id, account_id):
+        name = line.product_id.name
+        if line.notice:
+            # add discount reason in move
+            name = name + ' (' + line.notice + ')'
+
+        amount = line.price_subtotal
+        values = {
+            'name': name,
+            'quantity': line.qty,
+            'product_id': line.product_id.id,
+            'account_id': account_id,
+            'analytic_account_id': self._prepare_analytic_account(line),
+            'credit': ((amount > 0) and amount) or 0.0,
+            'debit': ((amount < 0) and -amount) or 0.0,
+            'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids)],
+            'partner_id': partner_id
+        }
+        return values
+
     def _action_create_invoice_line(self, line=False, invoice_id=False):
         InvoiceLine = self.env['account.invoice.line']
         inv_name = line.product_id.name_get()[0][1]
@@ -229,7 +257,7 @@ class PosOrder(models.Model):
                 })
 
                 if data_type == 'product':
-                    key = ('product', values['partner_id'], (values['product_id'], tuple(values['tax_ids'][0][2]), values['name']), values['analytic_account_id'], values['debit'] > 0)
+                    key = self._get_account_move_line_product_key(values)
                 elif data_type == 'tax':
                     key = ('tax', values['partner_id'], values['tax_line_id'], values['debit'] > 0)
                 elif data_type == 'counter_part':
@@ -259,8 +287,6 @@ class PosOrder(models.Model):
             # Create an move for each order line
             cur = order.pricelist_id.currency_id
             for line in order.lines:
-                amount = line.price_subtotal
-
                 # Search for the income account
                 if line.product_id.property_account_income_id.id:
                     income_account = line.product_id.property_account_income_id.id
@@ -271,23 +297,10 @@ class PosOrder(models.Model):
                                       'account for this product: "%s" (id:%d).')
                                     % (line.product_id.name, line.product_id.id))
 
-                name = line.product_id.name
-                if line.notice:
-                    # add discount reason in move
-                    name = name + ' (' + line.notice + ')'
-
                 # Create a move for the line for the order line
-                insert_data('product', {
-                    'name': name,
-                    'quantity': line.qty,
-                    'product_id': line.product_id.id,
-                    'account_id': income_account,
-                    'analytic_account_id': self._prepare_analytic_account(line),
-                    'credit': ((amount > 0) and amount) or 0.0,
-                    'debit': ((amount < 0) and -amount) or 0.0,
-                    'tax_ids': [(6, 0, line.tax_ids_after_fiscal_position.ids)],
-                    'partner_id': partner_id
-                })
+                insert_data(
+                    'product', self._prepare_product_account_move_line(
+                        line, partner_id, income_account))
 
                 # Create the tax lines
                 taxes = line.tax_ids_after_fiscal_position.filtered(lambda t: t.company_id.id == current_company.id)
