@@ -364,6 +364,14 @@ class Product(models.Model):
     def action_view_routes(self):
         return self.mapped('product_tmpl_id').action_view_routes()
 
+    @api.multi
+    def write(self, vals):
+        res = super(Product, self).write(vals)
+        if 'active' in vals and not vals['active']:
+            orderpoints = self.mapped('orderpoint_ids')
+            orderpoints.write({'active': False})
+        return res
+
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
