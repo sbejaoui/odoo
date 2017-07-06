@@ -710,7 +710,7 @@ class Picking(models.Model):
         if links:
             links.unlink()
         # 1) first, try to create links when quants can be identified without any doubt
-        for ops in operations:
+        for ops in sorted(operations, key=lambda o: o.product_qty, reverse=True):
             lot_qty = {}
             for packlot in ops.pack_lot_ids:
                 lot_qty[packlot.lot_id.id] = ops.product_uom_id._compute_quantity(packlot.qty, ops.product_id.uom_id)
