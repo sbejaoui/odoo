@@ -134,7 +134,9 @@ class AccountAnalyticLine(models.Model):
             res = line.sudo()._get_sale_order_line(vals=values)
             super(AccountAnalyticLine, line).write(res)
 
-        self.mapped('so_line').sudo()._compute_analytic()
+        sale_line = self.mapped('so_line')
+        if sale_line:
+            sale_line.sudo()._compute_analytic()
         return lines
 
     @api.model
@@ -142,12 +144,15 @@ class AccountAnalyticLine(models.Model):
         line = super(AccountAnalyticLine, self).create(values)
         res = line.sudo()._get_sale_order_line(vals=values)
         line.with_context(create=True).write(res)
-        line.mapped('so_line').sudo()._compute_analytic()
+        sale_line = self.mapped('so_line')
+        if sale_line:
+            sale_line.sudo()._compute_analytic()
         return line
 
     @api.multi
     def unlink(self):
         so_lines = self.sudo().mapped('so_line')
         res = super(AccountAnalyticLine, self).unlink()
-        so_lines.with_context(force_so_lines=so_lines)._compute_analytic()
+        if so_lines:
+            so_lines.with_context(force_so_lines=so_lines)._compute_analytic()
         return res
