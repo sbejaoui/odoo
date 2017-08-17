@@ -182,7 +182,7 @@ class res_users(osv.osv):
         'id': fields.integer('ID'),
         'partner_id': fields.many2one('res.partner', required=True,
             string='Related Partner', ondelete='restrict',
-            help='Partner-related data of the user', auto_join=True),
+            help='Partner-related data of the user', auto_join=True, select=True),
         'login': fields.char('Login', size=64, required=True,
             help="Used to log into the system"),
         'password': fields.char('Password', size=64, invisible=True, copy=False,
