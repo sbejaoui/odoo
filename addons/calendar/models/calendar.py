@@ -512,6 +512,7 @@ class Meeting(models.Model):
     _order = "id desc"
     _inherit = ["mail.thread", "ir.needaction_mixin"]
 
+
     @api.model
     def _default_partners(self):
         """ When active_model is res.partner, the current partners should be attendees """
@@ -1468,7 +1469,10 @@ class Meeting(models.Model):
 
         result = []
         for calendar_id, real_id in select:
-            res = real_data[real_id].copy()
+            data_from_real_id = real_data.get(real_id)
+            if not data_from_real_id:
+                continue
+            res = data_from_real_id.copy()
             ls = calendar_id2real_id(calendar_id, with_date=res and res.get('duration', 0) > 0 and res.get('duration') or 1)
             if not isinstance(ls, (basestring, int, long)) and len(ls) >= 2:
                 res['start'] = ls[1]
