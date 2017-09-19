@@ -333,17 +333,15 @@ var WeeklyTimesheet = form_common.FormWidget.extend(form_common.ReinitializeWidg
         _.each(this.projects, function(project) {
             _.each(project.days, function(day) {
                 _.each(day.lines, function(line) {
-                    if (line.unit_amount !== 0) {
-                        var tmp = _.clone(line);
-                        _.each(line, function(v, k) {
-                            if (v instanceof Array) {
-                                tmp[k] = v[0];
-                            }
-                        });
-                        // we remove line_id as the reference to the _inherits field will no longer exists
-                        tmp = _.omit(tmp, ignored_fields);
-                        ops.push(tmp);
-                    }
+                    var tmp = _.clone(line);
+                    _.each(line, function(v, k) {
+                        if (v instanceof Array) {
+                            tmp[k] = v[0];
+                        }
+                    });
+                    // we remove line_id as the reference to the _inherits field will no longer exists
+                    tmp = _.omit(tmp, ignored_fields);
+                    ops.push(tmp);
                 });
             });
         });
