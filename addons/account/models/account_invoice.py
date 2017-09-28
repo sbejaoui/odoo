@@ -1344,7 +1344,7 @@ class AccountInvoiceLine(models.Model):
     def _onchange_account_id(self):
         if not self.account_id:
             return
-        if not self.product_id:
+        if self.account_id.tax_ids:
             fpos = self.invoice_id.fiscal_position_id
             self.invoice_line_tax_ids = fpos.map_tax(self.account_id.tax_ids, partner=self.partner_id).ids
         else:
