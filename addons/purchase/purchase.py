@@ -408,6 +408,8 @@ class PurchaseOrder(models.Model):
             res = self.env.ref('stock.view_picking_form', False)
             result['views'] = [(res and res.id or False, 'form')]
             result['res_id'] = pick_ids and pick_ids[0] or False
+        else:
+            return {}
         return result
 
     @api.multi
