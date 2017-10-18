@@ -1400,8 +1400,7 @@ class stock_picking(models.Model):
             '''method that creates the link between a given operation and move(s) of given product, for the given quantity.
             Returns True if it was possible to create links for the requested quantity (False if there was not enough quantity on stock moves)'''
             qty_to_assign = qty
-            prod_obj = self.pool.get("product.product")
-            product = prod_obj.browse(cr, uid, product_id)
+            product = products_by_id[product_id]
             rounding = product.uom_id.rounding
             qtyassign_cmp = float_compare(qty_to_assign, 0.0, precision_rounding=rounding)
             if prod2move_ids.get(product_id):
@@ -1416,6 +1415,7 @@ class stock_picking(models.Model):
         quant_obj = self.pool.get('stock.quant')
         link_obj = self.pool.get('stock.move.operation.link')
         quants_in_package_done = set()
+        products_by_id = {p.id: p for p in picking.mapped('pack_operation_ids.product_id')}
         prod2move_ids = {}
         still_to_do = []
         #make a dictionary giving for each product, the moves and related quantity that can be used in operation links
@@ -1435,7 +1435,12 @@ class stock_picking(models.Model):
         if links:
             link_obj.unlink(cr, uid, links, context=context)
         #1) first, try to create links when quants can be identified without any doubt
+        # force prefect
+        picking.mapped('move_lines.product_id.product_tmpl_id')
+        picking.pack_operation_ids.mapped('product_id.product_tmpl_id')
         for ops in operations:
+            # use the preftech env ffrom the picking
+            ops.env.prefetch = picking.env.prefetch
             lot_qty = {}
             for packlot in ops.pack_lot_ids:
                 lot_qty[packlot.lot_id.id] = uom_obj._compute_qty(cr, uid, ops.product_uom_id.id, packlot.qty, ops.product_id.uom_id.id)
@@ -2497,7 +2502,15 @@ class stock_move(osv.osv):
         # Sort moves to reserve first the ones with ancestors, in case the same product is listed in
         # different stock moves.
         todo_moves.sort(key=lambda x: -1 if ancestors_list.get(x.id) else 0)
+        browse_todo_moves = self.browse(cr, uid, [m.id for m in todo_moves], context=context)
+        m_by_id = {m.id: m for m in browse_todo_moves}
+        # force prefetch
+        browse_todo_moves.mapped('product_id')
+        browse_todo_moves.mapped('id')
+        # prefetch data used into quants_get_preferred_domain
+        browse_todo_moves.mapped('product_id.categ_id.removal_strategy_id')
         for move in todo_moves:
+            move = m_by_id[move.id]
             #then if the move isn't totally assigned, try to find quants without any specific domain
             if (move.state != 'assigned') and not context.get("reserve_only_ops"):
                 qty_already_assigned = move.reserved_availability
