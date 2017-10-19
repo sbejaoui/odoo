@@ -420,7 +420,7 @@ class HrExpenseSheet(models.Model):
 
     @api.model
     def create(self, vals):
-        self._update_follower_values_on_create(vals)
+        self._create_set_followers(vals)
         sheet = super(HrExpenseSheet, self).create(vals)
         self.check_consistency()
         return sheet
@@ -473,7 +473,7 @@ class HrExpenseSheet(models.Model):
         self.message_subscribe_users(user_ids=users.ids)
 
     @api.model
-    def _update_follower_values_on_create(self, values):
+    def _create_set_followers(self, values):
         # Add the followers at creation, so they can be notified
         employee_id = values.get('employee_id')
         if not employee_id:
@@ -481,11 +481,10 @@ class HrExpenseSheet(models.Model):
 
         employee = self.env['hr.employee'].browse(employee_id)
         users = self._get_users_to_subscribe(employee=employee) - self.env.user
-        message_follower_ids_values = []
-        mail_follower_obj = self.env['mail.followers']
+        values['message_follower_ids'] = []
+        MailFollowers = self.env['mail.followers']
         for partner in users.mapped('partner_id'):
-            message_follower_ids_values += mail_follower_obj._add_follower_command(self._name, [], {partner.id: None}, {})[0]
-        values['message_follower_ids'] = message_follower_ids_values
+            values['message_follower_ids'] += MailFollowers._add_follower_command(self._name, [], {partner.id: None}, {})[0]
 
     @api.onchange('employee_id')
     def _onchange_employee_id(self):
