@@ -32,14 +32,20 @@ def migrate_tags_on_taxes(cr, registry):
         ('module', 'like', 'l10n_%')
     ])
     tax_template_ids = [x['res_id'] for x in xml_records.sudo().read(['res_id'])]
-    for tax_template in env['account.tax.template'].browse(tax_template_ids):
-        tax_id = env['account.tax'].search([
-            ('name', '=', tax_template.name),
-            ('type_tax_use', '=', tax_template.type_tax_use),
-            ('description', '=', tax_template.description)
-        ])
-        if len(tax_id.ids) == 1:
-            tax_id.sudo().write({'tag_ids': [(6, 0, tax_template.tag_ids.ids)]})
+    tax_templates = env['account.tax.template'].browse(tax_template_ids)
+    companies = env['res.company'].search([])
+    for tax_template in tax_templates:
+        for company in companies:
+            tax_id = env['account.tax'].search([
+                ('name', '=', tax_template.name),
+                ('type_tax_use', '=', tax_template.type_tax_use),
+                ('description', '=', tax_template.description),
+                ('company_id', '=', company.id),
+            ])
+            if len(tax_id.ids) == 1:
+                tax_id.sudo().write({
+                    'tag_ids': [(6, 0, tax_template.tag_ids.ids)]
+                })
 
 #  ---------------------------------------------------------------
 #   Account Templates: Account, Tax, Tax Code and chart. + Wizard
