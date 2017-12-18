@@ -24,6 +24,7 @@ from distutils.version import LooseVersion
 from functools import partial
 from pyPdf import PdfFileWriter, PdfFileReader
 from reportlab.graphics.barcode import createBarcodeDrawing
+from odoo.service.model import check
 
 
 # A lock occurs when the user wants to print a report having multiple barcode while the server is
@@ -32,7 +33,7 @@ from reportlab.graphics.barcode import createBarcodeDrawing
 # here to init the T1 fonts cache at the start-up of Odoo so that rendering of barcode in multiple
 # thread does not lock the server.
 try:
-    createBarcodeDrawing('Code128', value='foo', format='png', width=100, height=100, humanReadable=1).asString('png')
+    createBarcodeDrawing('Code128', value='foo', format='png', width=100, height=100, humanReadable=1, checksum=1).asString('png')
 except Exception:
     pass
 
@@ -576,16 +577,16 @@ class Report(models.Model):
 
         return merged_file_path
 
-    def barcode(self, barcode_type, value, width=600, height=100, humanreadable=0):
+    def barcode(self, barcode_type, value, width=600, height=100, humanreadable=0, checksum=1):
         if barcode_type == 'UPCA' and len(value) in (11, 12, 13):
             barcode_type = 'EAN13'
             if len(value) in (11, 12):
                 value = '0%s' % value
         try:
-            width, height, humanreadable = int(width), int(height), bool(int(humanreadable))
+            width, height, humanreadable, checksum = int(width), int(height), bool(int(humanreadable)), int(checksum)
             barcode = createBarcodeDrawing(
                 barcode_type, value=value, format='png', width=width, height=height,
-                humanReadable=humanreadable
+                humanReadable=humanreadable, checksum=checksum
             )
             return barcode.asString('png')
         except (ValueError, AttributeError):
