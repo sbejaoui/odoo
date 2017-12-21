@@ -1165,10 +1165,18 @@ class MailComposeMessage(models.TransientModel):
     _inherit = 'mail.compose.message'
 
     @api.multi
+    def _change_po_state(self, order):
+        """
+        I don't think it is necessary to change the po status
+        when sending an email but to keep the code i added
+        this overload function
+        """
+        return 'sent' if order.state == 'draft' else order.state
+
+    @api.multi
     def send_mail(self, auto_commit=False):
         if self._context.get('default_model') == 'purchase.order' and self._context.get('default_res_id'):
             if not self.filtered('subtype_id.internal'):
                 order = self.env['purchase.order'].browse([self._context['default_res_id']])
-                if order.state == 'draft':
-                    order.state = 'sent'
+                order.state = self._change_po_state(order)
         return super(MailComposeMessage, self.with_context(mail_post_autofollow=True)).send_mail(auto_commit=auto_commit)
