@@ -150,8 +150,12 @@ class ir_cron(osv.osv):
         """
         try:
             with api.Environment.manage():
+                # Get the current time using the the user time zone
                 now = fields.datetime.context_timestamp(job_cr, job['user_id'], datetime.now())
                 nextcall = fields.datetime.context_timestamp(job_cr, job['user_id'], datetime.strptime(job['nextcall'], DEFAULT_SERVER_DATETIME_FORMAT))
+                dst_offset = nextcall.dst()
+                # If we are in DST period remove the dst offset
+                nextcall -= dst_offset
                 numbercall = job['numbercall']
 
                 ok = False
@@ -166,6 +170,10 @@ class ir_cron(osv.osv):
                 addsql = ''
                 if not numbercall:
                     addsql = ', active=False'
+
+                # Return back the offset removed otherwise we will not do
+                # full interval (interval - dst_offset) in DST period
+                nextcall += dst_offset
                 cron_cr.execute("UPDATE ir_cron SET nextcall=%s, numbercall=%s"+addsql+" WHERE id=%s",
                            (nextcall.astimezone(pytz.UTC).strftime(DEFAULT_SERVER_DATETIME_FORMAT), numbercall, job['id']))
                 self.invalidate_cache(job_cr, SUPERUSER_ID)
