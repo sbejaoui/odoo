@@ -272,17 +272,16 @@ class ProcurementOrder(models.Model):
         return 'location_id'
 
     @api.model
-    def _procurement_from_orderpoint_get_grouping_key(self, orderpoint_ids):
-        orderpoints = self.env['stock.warehouse.orderpoint'].browse(orderpoint_ids)
-        return orderpoints.location_id.id
+    def _procurement_from_orderpoint_get_grouping_key(self, orderpoint):
+        return orderpoint.location_id.id
 
     @api.model
-    def _procurement_from_orderpoint_get_groups(self, orderpoint_ids):
+    def _procurement_from_orderpoint_get_groups(self, orderpoint):
         """ Make groups for a given orderpoint; by default schedule all operations in one without date """
         return [{'to_date': False, 'procurement_values': dict()}]
 
     @api.model
-    def _procurement_from_orderpoint_post_process(self, orderpoint_ids):
+    def _procurement_from_orderpoint_post_process(self, orderpoint):
         return True
 
     def _get_orderpoint_domain(self, company_id=False):
@@ -324,10 +323,10 @@ class ProcurementOrder(models.Model):
             # Calculate groups that can be executed together
             location_data = defaultdict(lambda: dict(products=self.env['product.product'], orderpoints=self.env['stock.warehouse.orderpoint'], groups=list()))
             for orderpoint in orderpoints:
-                key = self._procurement_from_orderpoint_get_grouping_key([orderpoint.id])
+                key = self._procurement_from_orderpoint_get_grouping_key(orderpoint)
                 location_data[key]['products'] += orderpoint.product_id
                 location_data[key]['orderpoints'] += orderpoint
-                location_data[key]['groups'] = self._procurement_from_orderpoint_get_groups([orderpoint.id])
+                location_data[key]['groups'] = self._procurement_from_orderpoint_get_groups(orderpoint)
 
             for location_id, location_data in location_data.iteritems():
                 location_orderpoints = location_data['orderpoints']
@@ -361,7 +360,7 @@ class ProcurementOrder(models.Model):
                                     new_procurement = ProcurementAutorundefer.create(
                                         orderpoint._prepare_procurement_values(qty_rounded, **group['procurement_values']))
                                     procurement_list.append(new_procurement)
-                                    self._procurement_from_orderpoint_post_process([orderpoint.id])
+                                    self._procurement_from_orderpoint_post_process(orderpoint)
                                 if use_new_cursor:
                                     cr.commit()
 
