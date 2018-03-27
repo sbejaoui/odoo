@@ -185,7 +185,8 @@ class ProcurementOrder(models.Model):
     def _run(self):
         if self.rule_id.action == 'move':
             if not self.rule_id.location_src_id:
-                self.message_post(body=_('No source location defined!'))
+                log = self.log or ''
+                self.write({'log': fields.Datetime.now() + ': ' + _('No source location defined!') + '\n' + log})
                 return False
             # create the move as SUPERUSER because the current user may not have the rights to do it (mto product launched by a sale for example)
             self.env['stock.move'].sudo().create(self._get_stock_move_values())
@@ -228,7 +229,8 @@ class ProcurementOrder(models.Model):
             elif move_all_done_or_cancel and not move_all_cancel:
                 return True
             else:
-                self.message_post(body=_('All stock moves have been cancelled for this procurement.'))
+                log = self.log or ''
+                self.write({'log': fields.Datetime.now() + ': ' + _('All stock moves have been cancelled for this procurement.') + '\n' + log})
                 # TDE FIXME: strange that a check method actually modified the procurement...
                 self.write({'state': 'cancel'})
                 return False
@@ -276,17 +278,16 @@ class ProcurementOrder(models.Model):
         return 'location_id'
 
     @api.model
-    def _procurement_from_orderpoint_get_grouping_key(self, orderpoint_ids):
-        orderpoints = self.env['stock.warehouse.orderpoint'].browse(orderpoint_ids)
-        return orderpoints.location_id.id
+    def _procurement_from_orderpoint_get_grouping_key(self, orderpoint):
+        return orderpoint.location_id.id
 
     @api.model
-    def _procurement_from_orderpoint_get_groups(self, orderpoint_ids):
+    def _procurement_from_orderpoint_get_groups(self, orderpoint):
         """ Make groups for a given orderpoint; by default schedule all operations in one without date """
         return [{'to_date': False, 'procurement_values': dict()}]
 
     @api.model
-    def _procurement_from_orderpoint_post_process(self, orderpoint_ids):
+    def _procurement_from_orderpoint_post_process(self, orderpoint):
         return True
 
     def _get_orderpoint_domain(self, company_id=False):
@@ -328,10 +329,10 @@ class ProcurementOrder(models.Model):
             # Calculate groups that can be executed together
             location_data = defaultdict(lambda: dict(products=self.env['product.product'], orderpoints=self.env['stock.warehouse.orderpoint'], groups=list()))
             for orderpoint in orderpoints:
-                key = self._procurement_from_orderpoint_get_grouping_key([orderpoint.id])
+                key = self._procurement_from_orderpoint_get_grouping_key(orderpoint)
                 location_data[key]['products'] += orderpoint.product_id
                 location_data[key]['orderpoints'] += orderpoint
-                location_data[key]['groups'] = self._procurement_from_orderpoint_get_groups([orderpoint.id])
+                location_data[key]['groups'] = self._procurement_from_orderpoint_get_groups(orderpoint)
 
             for location_id, location_data in location_data.iteritems():
                 location_orderpoints = location_data['orderpoints']
@@ -365,10 +366,7 @@ class ProcurementOrder(models.Model):
                                     new_procurement = ProcurementAutorundefer.create(
                                         orderpoint._prepare_procurement_values(qty_rounded, **group['procurement_values']))
                                     procurement_list.append(new_procurement)
-                                    new_procurement.message_post_with_view('mail.message_origin_link',
-                                        values={'self': new_procurement, 'origin': orderpoint},
-                                        subtype_id=self.env.ref('mail.mt_note').id)
-                                    self._procurement_from_orderpoint_post_process([orderpoint.id])
+                                    self._procurement_from_orderpoint_post_process(orderpoint)
                                 if use_new_cursor:
                                     cr.commit()
 
