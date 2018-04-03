@@ -978,7 +978,7 @@ class ProcurementOrder(models.Model):
             # Create Line
             po_line = False
             for line in po.order_line:
-                if line.product_id == procurement.product_id and line.product_uom == procurement.product_id.uom_po_id:
+                if line.product_id == procurement.product_id and line.product_uom == procurement.product_id.uom_po_id and line.sale_layout_cat_id == procurement.sale_layout_cat_id:
                     procurement_uom_po_qty = self.env['product.uom']._compute_qty_obj(procurement.product_uom, procurement.product_qty, procurement.product_id.uom_po_id)
                     seller = self.product_id._select_seller(
                         procurement.product_id,
