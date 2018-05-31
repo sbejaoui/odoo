@@ -7,8 +7,7 @@ import werkzeug.urls
 
 from odoo import api, fields, models, tools
 
-
-URL_REGEX = r'(\bhref=[\'"]([^\'"]+)[\'"])'
+from openerp.addons.link_tracker.models.link_tracker import URL_REGEX
 
 
 class MailMail(models.Model):
@@ -56,15 +55,14 @@ class MailMail(models.Model):
         self.ensure_one()
         body = super(MailMail, self).send_get_mail_body(partner=partner)
 
-        links_blacklist = ['/unsubscribe_from_list']
-
         if self.mailing_id and body and self.statistics_ids:
             for match in re.findall(URL_REGEX, self.body_html):
-
                 href = match[0]
                 url = match[1]
 
-                if not [s for s in links_blacklist if s in href]:
+                parsed = urlparse.urlparse(url, scheme='http')
+
+                if parsed.scheme.startswith('http') and parsed.path.startswith('/r/'):
                     new_href = href.replace(url, url + '/m/' + str(self.statistics_ids[0].id))
                     body = body.replace(href, new_href)
 
@@ -94,7 +92,7 @@ class MailMail(models.Model):
             emails = tools.email_split(res.get('email_to')[0])
             email_to = emails and emails[0] or False
             unsubscribe_url = self._get_unsubscribe_url(email_to)
-            link_to_replace = base_url + '/unsubscribe_from_list'
+            link_to_replace =  base_url+'/unsubscribe_from_list'
             if link_to_replace in res['body']:
                 res['body'] = res['body'].replace(link_to_replace, unsubscribe_url if unsubscribe_url else '#')
         return res
