@@ -4,10 +4,10 @@ import base64
 from collections import defaultdict
 from decorator import decorator
 from operator import attrgetter
-import importlib
 import io
 import logging
 import os
+import pkg_resources
 import shutil
 import tempfile
 import zipfile
@@ -313,10 +313,8 @@ class Module(models.Model):
         if not depends:
             return
         for pydep in depends.get('python', []):
-            try:
-                importlib.import_module(pydep)
-            except ImportError:
-                raise ImportError('No module named %s' % (pydep,))
+            # this raises pkg_resources.DistributionNotFound in case of missing dependency
+            pkg_resources.get_distribution(pydep)
 
         for binary in depends.get('bin', []):
             try:
