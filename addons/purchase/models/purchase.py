@@ -932,8 +932,12 @@ class ProcurementOrder(models.Model):
             elif move_all_done_or_cancel and not move_all_cancel:
                 return True
             else:
-                self.message_post(body=_('All stock moves have been cancelled for this procurement.'))
-                self.write({'state': 'cancel'})
+                log = self.log or ''
+                self.write({
+                    'log': fields.Datetime.now() + ': ' +
+                           _('All stock moves have been cancelled for this '
+                             'procurement.') + '\n' + log,
+                    'state': 'cancel'})
                 return False
         return super(ProcurementOrder, self)._check()
 
