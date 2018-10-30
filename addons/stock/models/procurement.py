@@ -47,6 +47,14 @@ class ProcurementRule(models.Model):
         'stock.warehouse', 'Warehouse to Propagate',
         help="The warehouse to propagate on the created move/procurement, which can be different of the warehouse this rule is for (e.g for resupplying rules from another warehouse)")
 
+    # PATCH
+    mto_route = fields.Boolean(
+        related='route_id.mto_route',
+        store=True,
+        readonly=True,
+    )
+    # PATCH
+
     @api.model
     def _get_action(self):
         result = super(ProcurementRule, self)._get_action()
@@ -288,6 +296,24 @@ class ProcurementOrder(models.Model):
         domain += [('product_id.active', '=', True)]
         return domain
 
+    # PATCH
+    def _get_mto_virtual_available(self, orderpoint):
+        res = 0.0
+        procurements_out = self.env['procurement.order'].search([
+            ('state', '=', 'running'),
+            ('product_id', '=', orderpoint.product_id.id),
+            ('rule_id.mto_route', '=', True)])
+        procurements_in = procurements_out.mapped(
+            'group_id.procurement_ids').filtered(
+            lambda p: p.product_id == orderpoint.product_id and
+            p.purchase_line_id and p.purchase_line_id.order_id.state == 'draft'
+        )
+        for procurement in procurements_in:
+            res += procurement.product_qty
+        return res
+
+    # PATCH
+
     @api.model
     def _procure_orderpoint_confirm(self, use_new_cursor=False, company_id=False):
         """ Create procurements based on orderpoints.
@@ -343,6 +369,11 @@ class ProcurementOrder(models.Model):
                             op_product_virtual = product_quantity[orderpoint.product_id.id]['virtual_available']
                             if op_product_virtual is None:
                                 continue
+                            # PATCH
+                            mto_virtual_available =\
+                                self._get_mto_virtual_available(orderpoint)
+                            op_product_virtual += mto_virtual_available
+                            # PATCH
                             if float_compare(op_product_virtual, orderpoint.product_min_qty, precision_rounding=orderpoint.product_uom.rounding) <= 0:
                                 qty = max(orderpoint.product_min_qty, orderpoint.product_max_qty) - op_product_virtual
                                 remainder = orderpoint.qty_multiple > 0 and qty % orderpoint.qty_multiple or 0.0
