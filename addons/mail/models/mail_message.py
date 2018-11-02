@@ -723,7 +723,16 @@ class Message(models.Model):
         if 'record_name' not in values and 'default_record_name' not in self.env.context:
             values['record_name'] = self._get_record_name(values)
 
+        # delegate creation of tracking after the create as sudo to avoid access rights issues
+        tracking_values_cmd = values.pop('tracking_value_ids', False)
         message = super(Message, self).create(values)
+
+        if values.get('attachment_ids'):
+            message.attachment_ids.check(mode='read')
+
+        if tracking_values_cmd:
+            message.sudo().write({'tracking_value_ids': tracking_values_cmd})
+
         message._invalidate_documents()
 
         if not self.env.context.get('message_create_from_mail_mail'):
@@ -743,6 +752,9 @@ class Message(models.Model):
         if 'model' in vals or 'res_id' in vals:
             self._invalidate_documents()
         res = super(Message, self).write(vals)
+        if vals.get('attachment_ids'):
+            for mail in self:
+                mail.attachment_ids.check(mode='read')
         self._invalidate_documents()
         return res
 
