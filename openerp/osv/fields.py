@@ -1057,16 +1057,17 @@ class many2many(_column):
                     """.format(rel=rel, id1=id1, id2=id2)
                     cr.execute(query)
                     links = set(links) - set(cr.fetchall() or [])
-                query = """
-                    INSERT INTO {rel} ({id1}, {id2})
-                    VALUES {values}
-                """.format(
-                   rel=rel, id1=id1, id2=id2,
-                   values=", ".join(["%s"] * len(links)),
-                )
-                if cr._cnx.server_version >= 95000:
-                    query += " ON CONFLICT DO NOTHING"
-                cr.execute(query, tuple(links))
+                if links
+                    query = """
+                        INSERT INTO {rel} ({id1}, {id2})
+                        VALUES {values}
+                    """.format(
+                       rel=rel, id1=id1, id2=id2,
+                       values=", ".join(["%s"] * len(links)),
+                    )
+                    if cr._cnx.server_version >= 95000:
+                        query += " ON CONFLICT DO NOTHING"
+                    cr.execute(query, tuple(links))
 
         def unlink_all():
             # remove all records for which user has access rights
