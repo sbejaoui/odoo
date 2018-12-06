@@ -130,6 +130,12 @@ class Route(models.Model):
     product_ids = fields.Many2many('product.template', 'stock_route_product', 'route_id', 'product_id', 'Products')
     categ_ids = fields.Many2many('product.category', 'stock_location_route_categ', 'route_id', 'categ_id', 'Product Categories')
     warehouse_ids = fields.Many2many('stock.warehouse', 'stock_route_warehouse', 'route_id', 'warehouse_id', 'Warehouses')
+    # PATCH
+    mto_route = fields.Boolean(
+        'Is a MTO Route',
+        help="If this is checked, movements that have been generated through"
+             "this route won't be taken into account in stock levels.")
+    # PATCH
 
     @api.multi
     def write(self, values):
