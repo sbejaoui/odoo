@@ -1051,14 +1051,21 @@ class many2many(_column):
         def link(ids):
             if ids:
                 links = [(id, r) for r in ids]
+                if cr._cnx.server_version < 95000:
+                    query = """
+                        SELECT {id1}, {id2} FROM {rel}
+                    """.format(rel=rel, id1=id1, id2=id2))
+                    cr.execute(query)
+                    links = set(links) - set(cr.fetchall() or [])
                 query = """
                     INSERT INTO {rel} ({id1}, {id2})
                     VALUES {values}
-                    ON CONFLICT DO NOTHING
                 """.format(
                    rel=rel, id1=id1, id2=id2,
                    values=", ".join(["%s"] * len(links)),
                 )
+                if cr._cnx.server_version >= 95000:
+                    query += " ON CONFLICT DO NOTHING"
                 cr.execute(query, tuple(links))
 
         def unlink_all():
