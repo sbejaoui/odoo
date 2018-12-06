@@ -1054,7 +1054,7 @@ class many2many(_column):
                 if cr._cnx.server_version < 95000:
                     query = """
                         SELECT {id1}, {id2} FROM {rel}
-                    """.format(rel=rel, id1=id1, id2=id2))
+                    """.format(rel=rel, id1=id1, id2=id2)
                     cr.execute(query)
                     links = set(links) - set(cr.fetchall() or [])
                 query = """
