@@ -224,6 +224,7 @@
                         </group>
                         <group>
                             <field name="sequence" string="Sequence" groups="base.group_no_one"/>
+                             <field name="mto_route"/>
                         </group>
                     </group>
                     <separator string="Applicable On"/>
