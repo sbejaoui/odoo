@@ -40,6 +40,8 @@ class website_account(http.Controller):
             fields = ['name', 'create_date']
         groups = []
         for group in request.env[model]._read_group_raw(domain, fields=fields, groupby=groupby, orderby=order):
+            if not group[groupby]:
+                continue
             dates, label = group[groupby]
             date_begin, date_end = dates.split('/')
             groups.append({
