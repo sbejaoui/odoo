@@ -1459,7 +1459,7 @@ class Root(object):
             httprequest.app = self
             httprequest.parameter_storage_class = werkzeug.datastructures.ImmutableOrderedMultiDict
             threading.current_thread().url = httprequest.url
-
+            start_time = time.time()
             explicit_session = self.setup_session(httprequest)
             self.setup_db(httprequest)
             self.setup_lang(httprequest)
@@ -1502,6 +1502,8 @@ class Root(object):
                     result = _dispatch_nodb()
 
                 response = self.get_response(httprequest, result, explicit_session)
+            elapsed_time = time.time() - start_time
+            response.headers.add('odoo_processing_time', "%s" % elapsed_time)
             return response(environ, start_response)
 
         except werkzeug.exceptions.HTTPException, e:
