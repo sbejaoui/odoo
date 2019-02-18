@@ -131,7 +131,7 @@ class Attendee(models.Model):
     email = fields.Char('Email', help="Email of Invited Person")
     availability = fields.Selection([('free', 'Free'), ('busy', 'Busy')], 'Free/Busy', readonly="True")
     access_token = fields.Char('Invitation Token', default=_default_access_token)
-    event_id = fields.Many2one('calendar.event', 'Meeting linked', ondelete='cascade')
+    event_id = fields.Many2one('calendar.event', 'Meeting linked', ondelete='cascade', index=True)
 
     @api.depends('partner_id', 'partner_id.name', 'email')
     def _compute_common_name(self):
