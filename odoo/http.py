@@ -1502,8 +1502,9 @@ class Root(object):
                     result = _dispatch_nodb()
 
                 response = self.get_response(httprequest, result, explicit_session)
-            elapsed_time = time.time() - start_time
-            response.headers.add('odoo_processing_time', "%s" % elapsed_time)
+            if hasattr(response, 'headers'):
+                elapsed_time = time.time() - start_time
+                response.headers.add('odoo_processing_time', "%s" % elapsed_time)
             return response(environ, start_response)
 
         except werkzeug.exceptions.HTTPException, e:
