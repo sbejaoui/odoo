@@ -334,6 +334,9 @@ function formatMonetary(value, field, options) {
     if (options.field_digits === true) {
         digits = field.digits || digits;
     }
+    if (!digits){
+        digits = [69, 3]
+    }
     var formatted_value = formatFloat(value, field,
         _.extend({}, options , {digits: digits})
     );
